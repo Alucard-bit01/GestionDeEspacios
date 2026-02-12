@@ -1,0 +1,32 @@
+{% extends "base.html" %}
+
+{% block title %}Configuraciones{% endblock %}
+
+{% block content %}
+<div class="settings-container">
+    <h2>Configuraciones de Perfil</h2>
+
+    <div class="profile-preview">
+        <img src="{{ url_for('static', filename='uploads/' + user.profile_picture) }}" alt="Profile Picture">
+    </div>
+
+    <form method="POST" enctype="multipart/form-data">
+        <div class="form-group">
+            <label for="profile_picture">Foto de Perfil</label>
+            <input type="file" id="profile_picture" name="profile_picture" accept="image/*">
+        </div>
+
+        <div class="form-group">
+            <label for="username">Nombre de Usuario</label>
+            <input type="text" id="username" name="username" value="{{ user.username }}" required>
+        </div>
+
+        <div class="form-group">
+            <label for="password">Nueva Contraseña (dejar en blanco para mantener la actual)</label>
+            <input type="password" id="password" name="password">
+        </div>
+
+        <button type="submit">Guardar Cambios</button>
+    </form>
+</div>
+{% endblock %}

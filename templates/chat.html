@@ -1,0 +1,140 @@
+{% extends "base.html" %}
+
+{% block title %}Chat con {{ recipient.username }}{% endblock %}
+
+{% block content %}
+<div class="container chat-container-wrapper">
+    <div class="card chat-card">
+        <div class="card-header bg-primary text-white d-flex align-items-center">
+             <img src="{{ url_for('static', filename='uploads/' + recipient.profile_picture) }}" class="rounded-circle chat-header-img" alt="User">
+            <h5 class="mb-0 ml-2">{{ recipient.username }}</h5>
+        </div>
+        <div class="card-body chat-history" id="chat-history">
+            {% for msg in messages %}
+                <div class="message {{ 'sent' if msg.sender_id == user.id else 'received' }}">
+                    <div class="message-content">
+                        <p class="mb-0">{{ msg.body }}</p>
+                        <small class="timestamp">{{ msg.timestamp.strftime('%H:%M') }}</small>
+                    </div>
+                </div>
+            {% endfor %}
+        </div>
+        <div class="card-footer">
+            <form id="chat-form" class="d-flex">
+                <input type="text" id="message-input" class="form-control" placeholder="Escribe un mensaje..." autocomplete="off">
+                <button type="submit" class="btn btn-primary ml-2">Enviar</button>
+            </form>
+        </div>
+    </div>
+</div>
+
+<script src="https://cdn.socket.io/4.6.0/socket.io.min.js"></script>
+<script>
+    const socket = io();
+    const currentUserId = Number('{{ user.id }}');
+    const recipientId = Number('{{ recipient.id }}');
+    const chatHistory = document.getElementById('chat-history');
+
+    // Scroll to bottom on load
+    chatHistory.scrollTop = chatHistory.scrollHeight;
+
+    socket.on('connect', () => {
+        socket.emit('join', { user_id: currentUserId });
+    });
+
+    socket.on('receive_message', (data) => {
+        // Only append if it belongs to this conversation
+        if (data.sender_id === recipientId || data.sender_id === currentUserId) {
+            appendMessage(data);
+        }
+    });
+
+    document.getElementById('chat-form').addEventListener('submit', (e) => {
+        e.preventDefault();
+        const input = document.getElementById('message-input');
+        const message = input.value.trim();
+        
+        if (message) {
+            socket.emit('send_message', {
+                recipient_id: recipientId,
+                message: message
+            });
+            input.value = '';
+        }
+    });
+
+    function appendMessage(data) {
+        const div = document.createElement('div');
+        const isMe = data.sender_id === currentUserId;
+        div.classList.add('message', isMe ? 'sent' : 'received');
+        
+        div.innerHTML = `
+            <div class="message-content">
+                <p class="mb-0">${data.body}</p>
+                <small class="timestamp">${data.timestamp}</small>
+            </div>
+        `;
+        
+        chatHistory.appendChild(div);
+        chatHistory.scrollTop = chatHistory.scrollHeight;
+    }
+</script>
+
+<style>
+    .chat-container-wrapper {
+        max-width: 800px;
+        height: 80vh; 
+    }
+    .chat-card {
+        height: 100%;
+        display: flex;
+        flex-direction: column;
+    }
+    .chat-history {
+        flex: 1;
+        overflow-y: auto;
+        padding: 20px;
+        background-color: #f8f9fa;
+        display: flex;
+        flex-direction: column;
+    }
+    .message {
+        display: flex;
+        margin-bottom: 15px;
+    }
+    .message.sent {
+        justify-content: flex-end;
+    }
+    .message.received {
+        justify-content: flex-start;
+    }
+    .message-content {
+        max-width: 70%;
+        padding: 10px 15px;
+        border-radius: 20px;
+        position: relative;
+    }
+    .message.sent .message-content {
+        background-color: #007bff;
+        color: white;
+        border-bottom-right-radius: 5px;
+    }
+    .message.received .message-content {
+        background-color: #e9ecef;
+        color: #333;
+        border-bottom-left-radius: 5px;
+    }
+    .timestamp {
+        font-size: 0.75rem;
+        opacity: 0.8;
+        display: block;
+        text-align: right;
+        margin-top: 5px;
+    }
+    .chat-header-img {
+        width: 40px; 
+        height: 40px; 
+        object-fit: cover;
+    }
+</style>
+{% endblock %}

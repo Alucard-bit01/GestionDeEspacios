@@ -1,0 +1,120 @@
+{% extends "base.html" %}
+
+{% block title %}Reservas de Salones{% endblock %}
+
+{% block content %}
+<div class="container" style="max-width: 800px;">
+    <h2 class="mb-4">Reserva de Espacios</h2>
+    <p class="text-center mb-4">Selecciona un salón para reservar. El color indica el estado actual.</p>
+
+    <div class="classrooms-grid">
+        {% for room in classrooms %}
+            <button type="button" 
+                    class="classroom-box {{ 'reserved' if room.is_reserved else 'available' }}" 
+                    {% if room.is_reserved %}
+                        {% if room.active_reservation.user_id == user.id %}
+                            {% set start_iso = room.active_reservation.start_time.strftime('%Y-%m-%dT%H:%M') %}
+                            {% set end_iso = room.active_reservation.end_time.strftime('%Y-%m-%dT%H:%M') %}
+                            onclick="openCancelModal('{{ room.id }}', '{{ room.name }}', '{{ start_iso }}', '{{ end_iso }}')"
+                            title="Haz clic para ver detalles o cancelar"
+                        {% else %}
+                            disabled
+                            style="cursor: not-allowed; opacity: 0.6;"
+                            title="Reservado por otro usuario"
+                        {% endif %}
+                    {% else %}
+                        onclick="openBookingModal('{{ room.id }}', '{{ room.name }}')"
+                        title="Haz clic para reservar"
+                    {% endif %}>
+                
+                <span class="room-name">{{ room.name }}</span>
+                {% if room.is_reserved %}
+                    <span class="status-icon"><i class="fas fa-lock"></i></span>
+                    {% if room.active_reservation.user_id == user.id %}
+                        <span class="status-text">(Tu Reserva)</span>
+                    {% endif %}
+                {% else %}
+                    <span class="status-icon"><i class="fas fa-unlock"></i></span>
+                {% endif %}
+            </button>
+        {% endfor %}
+    </div>
+</div>
+
+<!-- Booking Modal -->
+<div id="bookingModal" class="modal">
+    <div class="modal-content">
+        <span class="close" onclick="closeModal('bookingModal')">&times;</span>
+        <h3 id="bookingTitle">Reservar Salón</h3>
+        <form id="bookingForm" method="POST" action="">
+            <div class="form-group">
+                <label for="start_time">Inicio</label>
+                <input type="datetime-local" id="start_time" name="start_time" required class="form-control">
+            </div>
+            <div class="form-group">
+                <label for="end_time">Fin</label>
+                <input type="datetime-local" id="end_time" name="end_time" required class="form-control">
+            </div>
+            <button type="submit" class="btn btn-primary">Confirmar Reserva</button>
+        </form>
+    </div>
+</div>
+
+<!-- Cancel Modal -->
+<div id="cancelModal" class="modal">
+    <div class="modal-content">
+        <span class="close" onclick="closeModal('cancelModal')">&times;</span>
+        <h3 id="cancelTitle">Gestionar Reserva</h3>
+        <p>Tienes reservado este salón.</p>
+        <p><strong>Inicio:</strong> <span id="cancelStart"></span></p>
+        <p><strong>Fin:</strong> <span id="cancelEnd"></span></p>
+        
+        <form id="cancelForm" method="POST" action="">
+             <!-- Pass times to identify specific reservation (or simplify backend to use ID) -->
+             <input type="hidden" id="cancel_start_time" name="start_time">
+             <input type="hidden" id="cancel_end_time" name="end_time">
+             <button type="submit" class="btn btn-danger" style="background-color: #dc3545;">Cancelar Reserva</button>
+        </form>
+    </div>
+</div>
+
+<script>
+    function openBookingModal(roomId, roomName) {
+        document.getElementById('bookingModal').style.display = "block";
+        document.getElementById('bookingTitle').innerText = "Reservar: " + roomName;
+        document.getElementById('bookingForm').action = "/reservations/book/" + roomId;
+        
+        // Default Times
+        const now = new Date();
+        now.setMinutes(now.getMinutes() - now.getTimezoneOffset());
+        document.getElementById('start_time').value = now.toISOString().slice(0,16);
+        
+        const end = new Date(now.getTime() + 60*60*1000);
+        document.getElementById('end_time').value = end.toISOString().slice(0,16);
+    }
+
+    function openCancelModal(roomId, roomName, start, end) {
+        document.getElementById('cancelModal').style.display = "block";
+        document.getElementById('cancelTitle').innerText = "Reserva: " + roomName;
+        document.getElementById('cancelForm').action = "/reservations/cancel/" + roomId;
+        
+        document.getElementById('cancelStart').innerText = start.replace('T', ' ');
+        document.getElementById('cancelEnd').innerText = end.replace('T', ' ');
+        
+        // Pass values to form handles (though backend logic might need adjustment if using form data vs ID)
+        // Here we just pass what we have; backend uses start_time to find overlap
+        document.getElementById('cancel_start_time').value = start;
+        document.getElementById('cancel_end_time').value = end;
+    }
+
+    function closeModal(modalId) {
+        document.getElementById(modalId).style.display = "none";
+    }
+
+    window.onclick = function(event) {
+        if (event.target.classList.contains('modal')) {
+            event.target.style.display = "none";
+        }
+    }
+</script>
+{% endblock %}
