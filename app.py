@@ -8,13 +8,16 @@ from datetime import datetime
 import os
 from werkzeug.utils import secure_filename
 
+
 app = Flask(__name__)
+
+socketio = SocketIO(app)
+
 app.config['SECRET_KEY'] = 'your_secret_key' # Change this to a random secret key
 # SQL Server Connection
 app.config['SQLALCHEMY_DATABASE_URI'] = r'mssql+pyodbc://@ALEXIS\SQLEXPRESS/Integradora?driver=ODBC+Driver+17+for+SQL+Server&trusted_connection=yes'
 app.config['SQLALCHEMY_TRACK_MODIFICATIONS'] = False
 app.config['UPLOAD_FOLDER'] = 'static/uploads'
-socketio = SocketIO(app)
 
 # Ensure upload directory exists
 os.makedirs(os.path.join(app.root_path, app.config['UPLOAD_FOLDER']), exist_ok=True)
@@ -45,6 +48,7 @@ def index():
     if current_user.is_authenticated:
         return render_template('dashboard.html', user=current_user)
     return redirect(url_for('login'))
+
 
 @app.route('/reservations', methods=['GET'])
 @login_required
@@ -169,6 +173,7 @@ def register():
 def logout():
     logout_user()
     return redirect(url_for('index'))
+
 
 @app.route('/settings', methods=['GET', 'POST'])
 @login_required

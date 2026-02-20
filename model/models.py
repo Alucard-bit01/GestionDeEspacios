@@ -10,8 +10,6 @@ class User(UserMixin, db.Model):
     password = db.Column(db.String(512), nullable=False)
     profile_picture = db.Column(db.String(255), nullable=True, default='default.svg')
 
-    profile_picture = db.Column(db.String(255), nullable=True, default='default.svg')
-
 class Classroom(db.Model):
     __tablename__ = 'classrooms'
     id = db.Column(db.Integer, primary_key=True)
