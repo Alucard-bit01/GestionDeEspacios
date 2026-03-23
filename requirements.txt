@@ -2,3 +2,6 @@ Flask
 flask-login
 flask-sqlalchemy
 werkzeug
+fpdf2
+requests
+python-dotenv

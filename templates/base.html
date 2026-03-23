@@ -1,107 +1,141 @@
-<!doctype html>
-<html lang="en">
-  <head>
-    <meta charset="UTF-8" />
-    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-    <title>{% block title %}Dashboard{% endblock %}</title>
-    <link
-      rel="stylesheet"
-      href="{{ url_for('static', filename='css/style.css') }}"
-    />
-    <!-- FontAwesome for Icons -->
-    <link
-      rel="stylesheet"
-      href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css"
-    />
+<!DOCTYPE html>
+<html class="light" lang="es">
+<head>
+    <meta charset="utf-8"/>
+    <meta content="width=device-width, initial-scale=1.0" name="viewport"/>
+    <title>{% block title %}Panel Pro{% endblock %}</title>
+    <script src="https://cdn.tailwindcss.com?plugins=forms,container-queries"></script>
+    <link href="https://fonts.googleapis.com/css2?family=Public+Sans:wght@300;400;500;600;700;800;900&display=swap" rel="stylesheet"/>
+    <link href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined:wght,FILL@100..700,0..1&display=swap" rel="stylesheet"/>
+    <script id="tailwind-config">
+        tailwind.config = {
+            darkMode: "class",
+            theme: {
+                extend: {
+                    colors: {
+                        "primary": "#ec5b13",
+                        "background-light": "#f8f6f6",
+                        "background-dark": "#221610",
+                    },
+                    fontFamily: {
+                        "display": ["Public Sans", "sans-serif"]
+                    },
+                    borderRadius: {"DEFAULT": "0.25rem", "lg": "0.5rem", "xl": "0.75rem", "full": "9999px"},
+                },
+            },
+        }
+    </script>
+    <style>
+        body { font-family: 'Public Sans', sans-serif; }
+        .material-symbols-outlined {
+            font-variation-settings: 'FILL' 0, 'wght' 400, 'GRAD' 0, 'opsz' 24;
+        }
+        .filled-icon {
+            font-variation-settings: 'FILL' 1;
+        }
+    </style>
     {% block head %}{% endblock %}
-  </head>
-  <body>
-    <div class="app-container">
-      <!-- Sidebar -->
-      <nav class="sidebar">
-        <div class="sidebar-header">
-          <h3>Mi App</h3>
-        </div>
-        <ul class="sidebar-menu">
-          <li>
-            <a
-              href="{{ url_for('index') }}"
-              class="{{ 'active' if request.endpoint == 'index' else '' }}"
-            >
-              <i class="fas fa-home"></i> <span>Dashboard</span>
-            </a>
-          </li>
-          <li>
-            <a
-              href="{{ url_for('videocall') }}"
-              class="{{ 'active' if request.endpoint == 'videocall' else '' }}"
-            >
-              <i class="fas fa-video"></i> <span>Videollamadas</span>
-            </a>
-          </li>
-          <li>
-            <a
-              href="{{ url_for('reservations') }}"
-              class="{{ 'active' if request.endpoint == 'reservations' else '' }}"
-            >
-              <i class="fas fa-calendar-alt"></i> <span>Reservas</span>
-            </a>
-          </li>
-          <li>
-            <a
-              href="{{ url_for('chat_list') }}"
-              class="{{ 'active' if request.endpoint == 'chat_list' or request.endpoint == 'chat_room' else '' }}"
-            >
-              <i class="fas fa-comments"></i> <span>Chat</span>
-              {% if unread_message_count > 0 %}
-              <span class="badge">{{ unread_message_count }}</span>
-              {% endif %}
-            </a>
-          </li>
-          <li>
-            <a
-              href="{{ url_for('settings') }}"
-              class="{{ 'active' if request.endpoint == 'settings' else '' }}"
-            >
-              <i class="fas fa-cog"></i> <span>Configuraciones</span>
-            </a>
-          </li>
-          <li class="logout-item">
-            <a href="{{ url_for('logout') }}">
-              <i class="fas fa-sign-out-alt"></i> <span>Cerrar Sesión</span>
-            </a>
-          </li>
-        </ul>
-      </nav>
-
-      <!-- Main Content -->
-      <main class="main-content">
-        <header class="top-bar">
-          <div class="user-info">
-            <span>{{ current_user.username }}</span>
-            {% if current_user.profile_picture %}
-            <img
-              src="{{ url_for('static', filename='uploads/' + current_user.profile_picture) }}"
-              alt="Profile"
-            />
-            {% else %}
-            <div class="user-avatar-placeholder">
-              <i class="fas fa-user"></i>
+</head>
+<body class="bg-background-light dark:bg-background-dark text-slate-900 dark:text-slate-100 antialiased font-display">
+<div class="flex h-screen overflow-hidden">
+    <!-- Sidebar -->
+    <aside class="w-64 flex-shrink-0 border-r border-primary/10 bg-white dark:bg-background-dark flex flex-col z-20">
+        <div class="p-6 flex items-center gap-3">
+            <div class="bg-primary rounded-lg p-2 text-white flex items-center justify-center shadow-lg shadow-primary/20">
+                <span class="material-symbols-outlined block text-2xl">school</span>
             </div>
-            {% endif %}
-          </div>
+            <div>
+                <h1 class="text-lg font-bold leading-tight">Admin Hub</h1>
+                <p class="text-xs text-slate-500 dark:text-slate-400">Classroom Manager</p>
+            </div>
+        </div>
+        <nav class="flex-1 px-4 space-y-1 overflow-y-auto mt-4">
+            <a href="{{ url_for('index') }}" class="flex items-center gap-3 px-3 py-2.5 rounded-xl {% if request.endpoint == 'index' %}bg-primary text-white shadow-lg shadow-primary/20{% else %}text-slate-600 dark:text-slate-400 hover:bg-primary/10 hover:text-primary{% endif %} transition-all font-medium">
+                <span class="material-symbols-outlined text-xl {% if request.endpoint == 'index' %}filled-icon{% endif %}">dashboard</span>
+                <span class="text-sm">Dashboard</span>
+            </a>
+            <a href="{{ url_for('videocall') }}" class="flex items-center gap-3 px-3 py-2.5 rounded-xl {% if request.endpoint == 'videocall' %}bg-primary text-white shadow-lg shadow-primary/20{% else %}text-slate-600 dark:text-slate-400 hover:bg-primary/10 hover:text-primary{% endif %} transition-all font-medium">
+                <span class="material-symbols-outlined text-xl {% if request.endpoint == 'videocall' %}filled-icon{% endif %}">videocam</span>
+                <span class="text-sm">Videollamadas</span>
+            </a>
+            <a href="{{ url_for('reservations') }}" class="flex items-center gap-3 px-3 py-2.5 rounded-xl {% if request.endpoint == 'reservations' %}bg-primary text-white shadow-lg shadow-primary/20{% else %}text-slate-600 dark:text-slate-400 hover:bg-primary/10 hover:text-primary{% endif %} transition-all font-medium">
+                <span class="material-symbols-outlined text-xl {% if request.endpoint == 'reservations' %}filled-icon{% endif %}">calendar_month</span>
+                <span class="text-sm">Reservas</span>
+            </a>
+            <a href="{{ url_for('chat_list') }}" class="flex items-center justify-between px-3 py-2.5 rounded-xl {% if request.endpoint == 'chat_list' %}bg-primary text-white shadow-lg shadow-primary/20{% else %}text-slate-600 dark:text-slate-400 hover:bg-primary/10 hover:text-primary{% endif %} transition-all font-medium">
+                <div class="flex items-center gap-3">
+                    <span class="material-symbols-outlined text-xl {% if request.endpoint == 'chat_list' %}filled-icon{% endif %}">chat</span>
+                    <span class="text-sm">Chat</span>
+                </div>
+                {% if unread_message_count > 0 %}
+                <span class="bg-primary/20 text-primary px-2 py-0.5 rounded-full text-[10px] font-bold">{{ unread_message_count }}</span>
+                {% endif %}
+            </a>
+            <a href="{{ url_for('videos') }}" class="flex items-center gap-3 px-3 py-2.5 rounded-xl {% if request.endpoint == 'videos' %}bg-primary text-white shadow-lg shadow-primary/20{% else %}text-slate-600 dark:text-slate-400 hover:bg-primary/10 hover:text-primary{% endif %} transition-all font-medium">
+                <span class="material-symbols-outlined text-xl {% if request.endpoint == 'videos' %}filled-icon{% endif %}">play_circle</span>
+                <span class="text-sm">Entretenimiento</span>
+            </a>
+            <a href="{{ url_for('stats') }}" class="flex items-center gap-3 px-3 py-2.5 rounded-xl {% if request.endpoint == 'stats' %}bg-primary text-white shadow-lg shadow-primary/20{% else %}text-slate-600 dark:text-slate-400 hover:bg-primary/10 hover:text-primary{% endif %} transition-all font-medium">
+                <span class="material-symbols-outlined text-xl {% if request.endpoint == 'stats' %}filled-icon{% endif %}">monitoring</span>
+                <span class="text-sm">Estadísticas</span>
+            </a>
+            <div class="pt-4 mt-4 border-t border-primary/10">
+                <a href="{{ url_for('settings') }}" class="flex items-center gap-3 px-3 py-2.5 rounded-xl {% if request.endpoint == 'settings' %}bg-primary text-white shadow-lg shadow-primary/20{% else %}text-slate-600 dark:text-slate-400 hover:bg-primary/10 hover:text-primary{% endif %} transition-all font-medium">
+                    <span class="material-symbols-outlined text-xl {% if request.endpoint == 'settings' %}filled-icon{% endif %}">settings</span>
+                    <span class="text-sm text-sm">Configuraciones</span>
+                </a>
+                <a href="{{ url_for('logout') }}" class="flex items-center gap-3 px-3 py-2.5 rounded-xl text-red-500 hover:bg-red-50 dark:hover:bg-red-900/10 transition-colors mt-2">
+                    <span class="material-symbols-outlined text-xl">logout</span>
+                    <span class="text-sm font-medium">Cerrar Sesión</span>
+                </a>
+            </div>
+        </nav>
+        <div class="p-4 border-t border-primary/10">
+            <div class="flex items-center gap-3 p-2 bg-slate-50 dark:bg-slate-800/50 rounded-xl">
+                {% if current_user.profile_picture %}
+                <img src="{{ url_for('static', filename='uploads/' + current_user.profile_picture) }}" alt="User" class="size-10 rounded-full object-cover border-2 border-primary/20">
+                {% else %}
+                <div class="size-10 rounded-full bg-primary/20 flex items-center justify-center text-primary font-bold shadow-sm">
+                    {{ current_user.username[0] | upper }}
+                </div>
+                {% endif %}
+                <div class="flex-1 overflow-hidden">
+                    <p class="text-sm font-bold truncate text-slate-800 dark:text-white">{{ current_user.username }}</p>
+                    <p class="text-[10px] text-slate-500 truncate uppercase tracking-widest">Administrator</p>
+                </div>
+            </div>
+        </div>
+    </aside>
+
+    <!-- Main Content Area -->
+    <main class="flex-1 flex flex-col min-w-0 overflow-hidden">
+        <!-- Header -->
+        <header class="h-16 flex-shrink-0 flex items-center justify-between px-8 bg-white/80 dark:bg-background-dark/80 backdrop-blur-md border-b border-primary/10 z-10">
+            <div class="max-w-md w-full">
+                <div class="relative group">
+                    <span class="material-symbols-outlined absolute left-3 top-1/2 -translate-y-1/2 text-slate-400 group-focus-within:text-primary transition-colors">search</span>
+                    <input class="w-full bg-slate-100 dark:bg-slate-800 border-none rounded-xl pl-10 py-2 text-sm focus:ring-2 focus:ring-primary/20 transition-all" placeholder="Buscar en el sistema..." type="text"/>
+                </div>
+            </div>
+            <div class="flex items-center gap-4">
+                <button class="p-2 text-slate-500 hover:bg-slate-100 dark:hover:bg-slate-800 rounded-lg transition-colors relative">
+                    <span class="material-symbols-outlined">notifications</span>
+                    <span class="absolute top-2 right-2 w-2 h-2 bg-primary rounded-full border-2 border-white dark:border-background-dark"></span>
+                </button>
+                <div class="h-8 w-[1px] bg-slate-200 dark:bg-slate-700 mx-2"></div>
+                <div class="flex items-center gap-3">
+                    <div class="text-right hidden sm:block">
+                        <p class="text-sm font-bold text-slate-800 dark:text-white leading-none">{{ current_user.username }}</p>
+                        <p class="text-[10px] text-slate-500 mt-1 uppercase tracking-tighter">Super Admin</p>
+                    </div>
+                </div>
+            </div>
         </header>
 
-        <div class="content-wrapper">
-          {% with messages = get_flashed_messages() %} {% if messages %}
-          <div class="flash-messages">
-            {% for message in messages %}
-            <div class="alert">{{ message }}</div>
-            {% endfor %}
-          </div>
-          {% endif %} {% endwith %} {% block content %}{% endblock %}
+        <!-- Body -->
+        <div class="flex-1 overflow-y-auto p-8">
+            {% block content %}{% endblock %}
         </div>
-      </main>
-    </div>
-  </body>
+    </main>
+</body>
 </html>

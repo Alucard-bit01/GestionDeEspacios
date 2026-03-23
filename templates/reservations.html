@@ -1,87 +1,227 @@
 {% extends "base.html" %}
 
-{% block title %}Reservas de Salones{% endblock %}
+{% block title %}Reservas - Admin Hub{% endblock %}
 
 {% block content %}
-<div class="container" style="max-width: 800px;">
-    <h2 class="mb-4">Reserva de Espacios</h2>
-    <p class="text-center mb-4">Selecciona un salón para reservar. El color indica el estado actual.</p>
-
-    <div class="classrooms-grid">
-        {% for room in classrooms %}
-            <button type="button" 
-                    class="classroom-box {{ 'reserved' if room.is_reserved else 'available' }}" 
-                    {% if room.is_reserved %}
-                        {% if room.active_reservation.user_id == user.id %}
-                            {% set start_iso = room.active_reservation.start_time.strftime('%Y-%m-%dT%H:%M') %}
-                            {% set end_iso = room.active_reservation.end_time.strftime('%Y-%m-%dT%H:%M') %}
-                            onclick="openCancelModal('{{ room.id }}', '{{ room.name }}', '{{ start_iso }}', '{{ end_iso }}')"
-                            title="Haz clic para ver detalles o cancelar"
-                        {% else %}
-                            disabled
-                            style="cursor: not-allowed; opacity: 0.6;"
-                            title="Reservado por otro usuario"
-                        {% endif %}
-                    {% else %}
-                        onclick="openBookingModal('{{ room.id }}', '{{ room.name }}')"
-                        title="Haz clic para reservar"
-                    {% endif %}>
-                
-                <span class="room-name">{{ room.name }}</span>
-                {% if room.is_reserved %}
-                    <span class="status-icon"><i class="fas fa-lock"></i></span>
-                    {% if room.active_reservation.user_id == user.id %}
-                        <span class="status-text">(Tu Reserva)</span>
-                    {% endif %}
-                {% else %}
-                    <span class="status-icon"><i class="fas fa-unlock"></i></span>
-                {% endif %}
+<div class="space-y-8">
+    <!-- Header Section -->
+    <div class="flex flex-col md:flex-row justify-between items-start md:items-center gap-4">
+        <div>
+            <h1 class="text-4xl font-black tracking-tighter mb-2 uppercase text-slate-900 dark:text-white">Reserva de Espacios</h1>
+            <p class="text-slate-500 max-w-lg font-medium italic">Gestione y reserve salones disponibles en el campus universitario de forma centralizada.</p>
+        </div>
+        <div class="flex items-center gap-3">
+            <button class="bg-white dark:bg-slate-900 p-2.5 rounded-xl border border-slate-200 dark:border-slate-800 text-slate-500 hover:text-primary transition-all shadow-sm" onclick="window.location.reload()">
+                <span class="material-symbols-outlined">refresh</span>
             </button>
+            <button class="bg-primary hover:scale-105 active:scale-95 text-white px-5 py-2.5 rounded-xl font-bold text-sm transition-all shadow-lg shadow-primary/20 flex items-center gap-2 uppercase tracking-widest" onclick="window.scrollTo(0, document.body.scrollHeight);">
+                <span class="material-symbols-outlined text-lg">add</span> Nueva Reserva
+            </button>
+        </div>
+    </div>
+
+    <!-- Rooms Grid -->
+    <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-6">
+        {% for room in classrooms %}
+            {% if room.is_reserved %}
+                {% if room.active_reservation.user_id == current_user.id %}
+                    <!-- Tu Reserva -->
+                    {% set start_iso = room.active_reservation.start_time.strftime('%Y-%m-%dT%H:%M') %}
+                    {% set end_iso = room.active_reservation.end_time.strftime('%Y-%m-%dT%H:%M') %}
+                    
+                    <div class="group bg-white dark:bg-slate-900 border-2 border-primary rounded-3xl overflow-hidden shadow-xl shadow-primary/5 cursor-pointer transition-all hover:shadow-2xl" onclick="openCancelModal('{{ room.id }}', '{{ room.name }}', '{{ start_iso }}', '{{ end_iso }}')">
+                        <div class="aspect-video bg-slate-100 dark:bg-slate-800 relative overflow-hidden flex items-center justify-center">
+                            <span class="material-symbols-outlined text-slate-300 dark:text-slate-700 text-6xl">meeting_room</span>
+                            <div class="absolute inset-0 bg-primary/10"></div>
+                            <div class="absolute top-4 left-4 px-2 py-1 bg-primary text-white text-[10px] font-black uppercase tracking-widest rounded-lg">Tu Reserva</div>
+                            <div class="absolute top-4 right-4 bg-primary p-2 rounded-xl text-white shadow-lg shadow-primary/20">
+                                <span class="material-symbols-outlined text-xl filled-icon">lock</span>
+                            </div>
+                        </div>
+                        <div class="p-6">
+                            <h3 class="font-black text-primary text-xl uppercase tracking-tighter truncate">{{ room.name }}</h3>
+                            <div class="mt-4 flex items-center gap-3">
+                                <div class="bg-primary/10 p-2 rounded-xl">
+                                    <span class="material-symbols-outlined text-primary text-lg">schedule</span>
+                                </div>
+                                <p class="text-sm font-bold text-slate-700 dark:text-slate-300 uppercase tracking-tighter">
+                                    {{ room.active_reservation.start_time.strftime('%H:%M') }} - {{ room.active_reservation.end_time.strftime('%H:%M') }}
+                                </p>
+                            </div>
+                            <div class="mt-6">
+                                <button class="w-full text-xs font-black py-3 rounded-2xl border-2 border-red-500/20 text-red-500 hover:bg-red-500 hover:text-white transition-all uppercase tracking-widest" onclick="event.stopPropagation(); openCancelModal('{{ room.id }}', '{{ room.name }}', '{{ start_iso }}', '{{ end_iso }}')">Gestionar Reserva</button>
+                            </div>
+                        </div>
+                    </div>
+                {% else %}
+                    <!-- Ocupado por otro -->
+                    <div class="bg-slate-100/50 dark:bg-slate-900 border-2 border-slate-200 dark:border-slate-800 rounded-3xl overflow-hidden opacity-80 cursor-not-allowed">
+                        <div class="aspect-video bg-slate-200 dark:bg-slate-800 relative overflow-hidden flex items-center justify-center">
+                            <span class="material-symbols-outlined text-slate-400 dark:text-slate-600 text-6xl">meeting_room</span>
+                            <div class="absolute top-4 left-4 px-3 py-1 bg-slate-500 text-white text-[10px] font-black uppercase tracking-widest rounded-lg">Ocupado</div>
+                            <div class="absolute top-4 right-4 bg-slate-800 p-2 rounded-xl text-white shadow-lg">
+                                <span class="material-symbols-outlined text-xl filled-icon">lock</span>
+                            </div>
+                        </div>
+                        <div class="p-6">
+                            <h3 class="font-black text-slate-500 text-xl uppercase tracking-tighter truncate">{{ room.name }}</h3>
+                            <div class="mt-4 flex items-center gap-3">
+                                <div class="bg-slate-200 dark:bg-slate-800 p-2 rounded-xl">
+                                    <span class="material-symbols-outlined text-slate-400 text-lg">person</span>
+                                </div>
+                                <p class="text-sm font-bold text-slate-500 uppercase tracking-tighter">No disponible</p>
+                            </div>
+                            <p class="mt-4 text-[11px] text-slate-400 font-bold uppercase tracking-widest">Libre a las: {{ room.active_reservation.end_time.strftime('%H:%M') }}</p>
+                        </div>
+                    </div>
+                {% endif %}
+            {% else %}
+                <!-- Disponible -->
+                <div class="group bg-white dark:bg-slate-900 border-2 border-slate-100 dark:border-slate-800 rounded-3xl overflow-hidden hover:shadow-2xl transition-all hover:border-primary/40 cursor-pointer shadow-xl" onclick="openBookingModal('{{ room.id }}', '{{ room.name }}')">
+                    <div class="aspect-video bg-slate-50 dark:bg-slate-800 relative overflow-hidden flex items-center justify-center border-b border-slate-100 dark:border-slate-800">
+                        <span class="material-symbols-outlined text-slate-200 dark:text-slate-700 text-6xl group-hover:scale-110 transition-transform duration-500">meeting_room</span>
+                        <div class="absolute top-4 left-4 px-3 py-1 bg-green-500 text-white text-[10px] font-black uppercase tracking-widest rounded-lg">Disponible</div>
+                        <div class="absolute top-4 right-4 bg-white/90 dark:bg-slate-800/90 backdrop-blur p-2 rounded-xl text-green-500 shadow-sm border border-slate-100 dark:border-slate-700">
+                            <span class="material-symbols-outlined text-xl">lock_open</span>
+                        </div>
+                    </div>
+                    <div class="p-6">
+                        <h3 class="font-black text-slate-900 dark:text-white group-hover:text-primary transition-colors text-xl uppercase tracking-tighter truncate">{{ room.name }}</h3>
+                        <div class="flex items-center gap-4 mt-4">
+                            <span class="flex items-center gap-1.5 bg-slate-100 dark:bg-slate-800 py-1.5 px-3 rounded-xl font-bold text-[10px] uppercase tracking-widest text-slate-500">
+                                <span class="material-symbols-outlined text-base">group</span> {{ room.capacity }}
+                            </span>
+                            <span class="flex items-center gap-1.5 bg-slate-100 dark:bg-slate-800 py-1.5 px-3 rounded-xl font-bold text-[10px] uppercase tracking-widest text-slate-500">
+                                <span class="material-symbols-outlined text-base">desktop_windows</span> HD
+                            </span>
+                        </div>
+                        <div class="mt-6">
+                            <button class="w-full bg-slate-900 dark:bg-slate-100 text-white dark:text-slate-900 font-black py-3 rounded-2xl group-hover:bg-primary group-hover:text-white transition-all uppercase tracking-widest text-xs shadow-lg shadow-slate-900/10 group-hover:shadow-primary/30">Reservar Ahora</button>
+                        </div>
+                    </div>
+                </div>
+            {% endif %}
         {% endfor %}
     </div>
 </div>
 
-<!-- Booking Modal -->
-<div id="bookingModal" class="modal">
-    <div class="modal-content">
-        <span class="close" onclick="closeModal('bookingModal')">&times;</span>
-        <h3 id="bookingTitle">Reservar Salón</h3>
+<!-- Modal Overlays -->
+<div id="modalOverlay" class="fixed inset-0 z-[100] items-center justify-center bg-slate-950/60 backdrop-blur-sm p-4 hidden transition-all duration-300">
+    
+    <!-- Modal: Booking -->
+    <div id="bookingModal" class="hidden w-full max-w-lg bg-white dark:bg-slate-900 rounded-[2rem] shadow-2xl border border-slate-200 dark:border-slate-800 overflow-hidden transform scale-95 transition-all">
+        <div class="p-8 border-b border-slate-100 dark:border-slate-800 flex justify-between items-center bg-slate-50/50 dark:bg-slate-800/50">
+            <h4 class="font-black text-2xl text-slate-900 dark:text-white uppercase tracking-tighter">Reservar Salón</h4>
+            <button onclick="closeModal()" class="text-slate-400 hover:text-primary transition-colors">
+                <span class="material-symbols-outlined block text-2xl">close</span>
+            </button>
+        </div>
         <form id="bookingForm" method="POST" action="">
-            <div class="form-group">
-                <label for="start_time">Inicio</label>
-                <input type="datetime-local" id="start_time" name="start_time" required class="form-control">
+            <div class="p-8">
+                <div class="flex items-center gap-5 mb-8 bg-primary/5 p-6 rounded-3xl border-2 border-primary/10">
+                    <div class="size-14 rounded-2xl bg-primary text-white flex items-center justify-center shadow-xl shadow-primary/20">
+                        <span class="material-symbols-outlined text-2xl">meeting_room</span>
+                    </div>
+                    <div>
+                        <p class="text-[10px] font-black text-primary uppercase tracking-widest mb-1">Salón Seleccionado</p>
+                        <p class="font-black text-slate-900 dark:text-white text-xl uppercase tracking-tighter" id="bookingTitle">Salón - Edificio</p>
+                    </div>
+                </div>
+                
+                <div class="grid grid-cols-1 md:grid-cols-2 gap-6">
+                    <div>
+                        <label for="start_time" class="block text-[10px] font-black text-slate-400 uppercase tracking-widest mb-2 px-1">Inicio de Reserva</label>
+                        <input type="datetime-local" id="start_time" name="start_time" required class="w-full bg-slate-100 dark:bg-slate-800 border-none rounded-2xl text-sm focus:ring-2 focus:ring-primary/20 py-4 px-4 font-bold text-slate-700 dark:text-slate-200 transition-all"/>
+                    </div>
+                    <div>
+                        <label for="end_time" class="block text-[10px] font-black text-slate-400 uppercase tracking-widest mb-2 px-1">Fin de Reserva</label>
+                        <input type="datetime-local" id="end_time" name="end_time" required class="w-full bg-slate-100 dark:bg-slate-800 border-none rounded-2xl text-sm focus:ring-2 focus:ring-primary/20 py-4 px-4 font-bold text-slate-700 dark:text-slate-200 transition-all"/>
+                    </div>
+                </div>
+                
+                <div class="mt-10 flex gap-4">
+                    <button type="button" onclick="closeModal()" class="flex-1 px-6 py-4 border-2 border-slate-100 dark:border-slate-800 rounded-2xl font-black text-xs text-slate-400 hover:bg-slate-50 dark:hover:bg-slate-800 transition-all uppercase tracking-widest">Cancelar</button>
+                    <button type="submit" class="flex-1 px-6 py-4 bg-primary hover:brightness-110 text-white rounded-2xl font-black text-xs shadow-2xl shadow-primary/30 transition-all active:scale-95 uppercase tracking-widest">Confirmar Reserva</button>
+                </div>
             </div>
-            <div class="form-group">
-                <label for="end_time">Fin</label>
-                <input type="datetime-local" id="end_time" name="end_time" required class="form-control">
-            </div>
-            <button type="submit" class="btn btn-primary">Confirmar Reserva</button>
         </form>
     </div>
-</div>
 
-<!-- Cancel Modal -->
-<div id="cancelModal" class="modal">
-    <div class="modal-content">
-        <span class="close" onclick="closeModal('cancelModal')">&times;</span>
-        <h3 id="cancelTitle">Gestionar Reserva</h3>
-        <p>Tienes reservado este salón.</p>
-        <p><strong>Inicio:</strong> <span id="cancelStart"></span></p>
-        <p><strong>Fin:</strong> <span id="cancelEnd"></span></p>
-        
-        <form id="cancelForm" method="POST" action="">
-             <!-- Pass times to identify specific reservation (or simplify backend to use ID) -->
-             <input type="hidden" id="cancel_start_time" name="start_time">
-             <input type="hidden" id="cancel_end_time" name="end_time">
-             <button type="submit" class="btn btn-danger" style="background-color: #dc3545;">Cancelar Reserva</button>
-        </form>
+    <!-- Modal: Management -->
+    <div id="cancelModal" class="hidden w-full max-w-lg bg-white dark:bg-slate-900 rounded-[2rem] shadow-2xl border border-slate-200 dark:border-slate-800 overflow-hidden transform scale-95 transition-all">
+        <div class="p-8 border-b border-slate-100 dark:border-slate-800 flex justify-between items-center bg-slate-50/50 dark:bg-slate-800/50">
+            <h4 class="font-black text-2xl text-slate-900 dark:text-white uppercase tracking-tighter">Gestionar Reserva</h4>
+            <button onclick="closeModal()" class="text-slate-400 hover:text-primary transition-colors">
+                <span class="material-symbols-outlined block text-2xl">close</span>
+            </button>
+        </div>
+        <div class="p-8">
+            <div class="mb-8 p-6 bg-blue-50/30 dark:bg-blue-900/10 border-2 border-blue-100 dark:border-blue-900/20 rounded-3xl flex items-start gap-5">
+                <div class="bg-blue-100 dark:bg-blue-900/30 p-2.5 rounded-xl">
+                    <span class="material-symbols-outlined text-blue-600 dark:text-blue-400 text-3xl">info</span>
+                </div>
+                <div>
+                    <p class="text-[10px] text-blue-600 dark:text-blue-400 font-black uppercase tracking-widest mb-1.5">Reserva Activa</p>
+                    <p class="font-black text-slate-900 dark:text-white text-xl uppercase tracking-tighter" id="cancelTitle">Salón - Edificio</p>
+                    <p class="text-[11px] font-bold text-slate-500 uppercase tracking-widest mt-2 flex items-center gap-2">
+                        <span class="material-symbols-outlined text-sm">schedule</span>
+                        <span id="cancelStart"></span> - <span id="cancelEnd"></span>
+                    </p>
+                </div>
+            </div>
+            
+            <form id="cancelModalForm" method="POST" action="">
+                <input type="hidden" id="cancel_start_time" name="start_time">
+                <input type="hidden" id="cancel_end_time" name="end_time">
+                
+                <div class="space-y-4">
+                    <button disabled type="button" class="w-full flex items-center justify-between p-5 border-2 border-slate-100 dark:border-slate-800 rounded-3xl hover:bg-slate-50 dark:hover:bg-slate-800 transition-all opacity-50 cursor-not-allowed group">
+                        <div class="flex items-center gap-4">
+                            <div class="bg-slate-100 dark:bg-slate-800 p-2.5 rounded-xl text-slate-500">
+                                <span class="material-symbols-outlined block text-xl">edit_calendar</span>
+                            </div>
+                            <span class="text-sm font-black text-slate-700 dark:text-slate-200 uppercase tracking-tighter">Modificar Horario</span>
+                        </div>
+                        <span class="material-symbols-outlined text-slate-300">chevron_right</span>
+                    </button>
+                    <button type="submit" class="w-full flex items-center justify-between p-5 border-2 border-red-50 dark:border-red-900/10 rounded-3xl hover:bg-red-50 dark:hover:bg-red-900/10 transition-all group">
+                        <div class="flex items-center gap-4">
+                            <div class="bg-red-100 dark:bg-red-900/20 p-2.5 rounded-xl text-red-600 dark:text-red-400 transition-all group-hover:bg-red-600 group-hover:text-white">
+                                <span class="material-symbols-outlined block text-xl">delete_sweep</span>
+                            </div>
+                            <span class="text-sm font-black text-red-600 dark:text-red-400 uppercase tracking-tighter">Cancelar Reserva</span>
+                        </div>
+                        <span class="material-symbols-outlined text-red-300 group-hover:text-red-600 transition-colors">chevron_right</span>
+                    </button>
+                </div>
+            </form>
+            
+            <div class="mt-8 p-4 bg-slate-50 dark:bg-slate-800/50 rounded-2xl border border-slate-100 dark:border-slate-800">
+                <p class="text-[10px] text-slate-400 text-center font-bold flex items-center justify-center gap-2 uppercase tracking-widest">
+                    <span class="material-symbols-outlined text-sm text-amber-500">warning</span>
+                    Las cancelaciones surten efecto inmediato
+                </p>
+            </div>
+        </div>
     </div>
 </div>
 
 <script>
+    const modalOverlay = document.getElementById('modalOverlay');
+    const bookingModal = document.getElementById('bookingModal');
+    const cancelModal = document.getElementById('cancelModal');
+
     function openBookingModal(roomId, roomName) {
-        document.getElementById('bookingModal').style.display = "block";
-        document.getElementById('bookingTitle').innerText = "Reservar: " + roomName;
+        modalOverlay.classList.remove('hidden');
+        modalOverlay.classList.add('flex');
+        
+        bookingModal.classList.remove('hidden');
+        // Trigger reflow for animation
+        void bookingModal.offsetWidth;
+        bookingModal.classList.remove('scale-95');
+        bookingModal.classList.add('scale-100');
+
+        document.getElementById('bookingTitle').innerText = roomName;
         document.getElementById('bookingForm').action = "/reservations/book/" + roomId;
         
         // Default Times
@@ -89,32 +229,52 @@
         now.setMinutes(now.getMinutes() - now.getTimezoneOffset());
         document.getElementById('start_time').value = now.toISOString().slice(0,16);
         
-        const end = new Date(now.getTime() + 60*60*1000);
+        const end = new Date(now.getTime() + 60*60*1000); // +1 hour
         document.getElementById('end_time').value = end.toISOString().slice(0,16);
     }
 
     function openCancelModal(roomId, roomName, start, end) {
-        document.getElementById('cancelModal').style.display = "block";
-        document.getElementById('cancelTitle').innerText = "Reserva: " + roomName;
-        document.getElementById('cancelForm').action = "/reservations/cancel/" + roomId;
+        modalOverlay.classList.remove('hidden');
+        modalOverlay.classList.add('flex');
         
-        document.getElementById('cancelStart').innerText = start.replace('T', ' ');
-        document.getElementById('cancelEnd').innerText = end.replace('T', ' ');
+        cancelModal.classList.remove('hidden');
+        void cancelModal.offsetWidth;
+        cancelModal.classList.remove('scale-95');
+        cancelModal.classList.add('scale-100');
+
+        document.getElementById('cancelTitle').innerText = roomName;
+        document.getElementById('cancelModalForm').action = "/reservations/cancel/" + roomId;
         
-        // Pass values to form handles (though backend logic might need adjustment if using form data vs ID)
-        // Here we just pass what we have; backend uses start_time to find overlap
+        const formatTime = (isoString) => {
+            const date = new Date(isoString);
+            return date.toLocaleTimeString([], {hour: '2-digit', minute:'2-digit'});
+        };
+
+        document.getElementById('cancelStart').innerText = formatTime(start);
+        document.getElementById('cancelEnd').innerText = formatTime(end);
+        
         document.getElementById('cancel_start_time').value = start;
         document.getElementById('cancel_end_time').value = end;
     }
 
-    function closeModal(modalId) {
-        document.getElementById(modalId).style.display = "none";
+    function closeModal() {
+        bookingModal.classList.add('scale-95');
+        bookingModal.classList.remove('scale-100');
+        
+        cancelModal.classList.add('scale-95');
+        cancelModal.classList.remove('scale-100');
+        
+        setTimeout(() => {
+            modalOverlay.classList.remove('flex');
+            modalOverlay.classList.add('hidden');
+            bookingModal.classList.add('hidden');
+            cancelModal.classList.add('hidden');
+        }, 300);
     }
 
-    window.onclick = function(event) {
-        if (event.target.classList.contains('modal')) {
-            event.target.style.display = "none";
-        }
-    }
+    // Close on overlay click
+    modalOverlay.addEventListener('click', (e) => {
+        if (e.target === modalOverlay) closeModal();
+    });
 </script>
 {% endblock %}

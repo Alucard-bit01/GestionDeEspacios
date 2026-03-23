@@ -1,0 +1,156 @@
+{% extends "base.html" %}
+
+{% block title %}Estadísticas - Admin Hub{% endblock %}
+
+{% block head %}
+<style>
+    .chart-container { position: relative; width: 220px; height: 220px; }
+    .doughnut-segment { transform-origin: center; transform: rotate(-90deg); transition: stroke-dasharray 0.8s cubic-bezier(0.4, 0, 0.2, 1); }
+</style>
+{% endblock %}
+
+{% block content %}
+<div class="space-y-10 pb-20" id="stats-container" data-occupied="{{ occupied_percent }}" data-vacant="{{ vacant_percent }}">
+    <!-- Header Section -->
+    <div class="flex flex-col md:flex-row md:items-center justify-between gap-8">
+        <div>
+            <div class="flex items-center gap-4 text-primary mb-2">
+                <span class="material-symbols-outlined text-5xl">analytics</span>
+                <h1 class="text-4xl font-black tracking-tighter text-slate-900 dark:text-white uppercase">Métricas de Ocupación</h1>
+            </div>
+            <p class="text-slate-500 dark:text-slate-400 font-medium italic">Visualización en tiempo real del estado de las salas y capacidad instalada.</p>
+        </div>
+        <div class="flex items-center gap-4">
+            <a href="{{ url_for('download_report') }}" class="flex items-center gap-4 bg-slate-900 dark:bg-slate-100 text-white dark:text-slate-900 font-black py-4 px-10 rounded-2xl shadow-2xl shadow-slate-900/20 transition-all hover:bg-primary hover:text-white active:scale-95 uppercase tracking-widest text-xs">
+                <span class="material-symbols-outlined">picture_as_pdf</span>
+                Exportar Reporte
+            </a>
+        </div>
+    </div>
+
+    <!-- Stats Grid -->
+    <div class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-8">
+        <div class="bg-white dark:bg-slate-900 p-10 rounded-[2.5rem] border border-slate-100 dark:border-slate-800 shadow-2xl shadow-slate-200/50 dark:shadow-none group hover:border-primary/30 transition-all">
+            <div class="flex justify-between items-start mb-8">
+                <div class="p-4 bg-primary/5 rounded-2xl text-primary group-hover:bg-primary group-hover:text-white transition-all duration-500">
+                    <span class="material-symbols-outlined text-3xl">meeting_room</span>
+                </div>
+                <span class="text-[10px] font-black px-4 py-1.5 bg-green-500/10 text-green-500 rounded-full uppercase tracking-widest">Activo</span>
+            </div>
+            <h3 class="text-slate-400 text-[10px] font-black uppercase tracking-widest mb-1">Salas en Uso</h3>
+            <p class="text-6xl font-black text-slate-900 dark:text-white tracking-tighter">{{ occupied_count }}</p>
+        </div>
+
+        <div class="bg-white dark:bg-slate-900 p-10 rounded-[2.5rem] border border-slate-100 dark:border-slate-800 shadow-2xl shadow-slate-200/50 dark:shadow-none group hover:border-primary/30 transition-all">
+            <div class="flex justify-between items-start mb-8">
+                <div class="p-4 bg-primary/5 rounded-2xl text-primary group-hover:bg-primary group-hover:text-white transition-all duration-500">
+                    <span class="material-symbols-outlined text-3xl">event_available</span>
+                </div>
+                <span class="text-[10px] font-black px-4 py-1.5 bg-blue-500/10 text-blue-500 rounded-full uppercase tracking-widest">Disponibles</span>
+            </div>
+            <h3 class="text-slate-400 text-[10px] font-black uppercase tracking-widest mb-1">Salas Libres</h3>
+            <p class="text-6xl font-black text-slate-900 dark:text-white tracking-tighter">{{ vacant_count }}</p>
+        </div>
+
+        <div class="bg-white dark:bg-slate-900 p-10 rounded-[2.5rem] border border-slate-100 dark:border-slate-800 shadow-2xl shadow-slate-200/50 dark:shadow-none group hover:border-primary/30 transition-all">
+            <div class="flex justify-between items-start mb-8">
+                <div class="p-4 bg-primary/5 rounded-2xl text-primary group-hover:bg-primary group-hover:text-white transition-all duration-500">
+                    <span class="material-symbols-outlined text-3xl">percent</span>
+                </div>
+                <span class="text-[10px] font-black px-4 py-1.5 bg-primary/20 text-primary rounded-full uppercase tracking-widest">Eficiencia</span>
+            </div>
+            <h3 class="text-slate-400 text-[10px] font-black uppercase tracking-widest mb-1">Ratio de Ocupación</h3>
+            <p class="text-6xl font-black text-slate-900 dark:text-white tracking-tighter">{{ occupied_percent }}%</p>
+        </div>
+    </div>
+
+    <!-- Main Visualization Section -->
+    <div class="bg-white dark:bg-slate-900 rounded-[3rem] border border-slate-100 dark:border-slate-800 p-12 shadow-2xl shadow-slate-200/50 dark:shadow-none relative overflow-hidden">
+        <div class="absolute top-0 right-0 p-12 opacity-5 pointer-events-none">
+            <span class="material-symbols-outlined text-[15rem]">donut_large</span>
+        </div>
+        
+        <h3 class="text-2xl font-black text-slate-900 dark:text-white uppercase tracking-tighter mb-16 flex items-center gap-4">
+            <span class="size-10 bg-primary rounded-xl flex items-center justify-center text-white shadow-lg shadow-primary/20">
+                <span class="material-symbols-outlined text-xl">pie_chart</span>
+            </span>
+            Distribución Global de Recursos
+        </h3>
+
+        <div class="flex flex-col lg:flex-row items-center justify-center gap-20">
+            <div class="chart-container flex items-center justify-center scale-125">
+                <svg class="size-full" viewbox="0 0 36 36">
+                    <circle class="text-slate-50 dark:text-slate-800" cx="18" cy="18" fill="transparent" r="16" stroke="currentColor" stroke-width="3.5"></circle>
+                    <circle id="vacant-circle" class="doughnut-segment" cx="18" cy="18" fill="transparent" r="16" stroke="#22c55e" stroke-dasharray="0 100" stroke-dashoffset="0" stroke-width="3.5" stroke-linecap="round"></circle>
+                    <circle id="occupied-circle" class="doughnut-segment" cx="18" cy="18" fill="transparent" r="16" stroke="#ec5b13" stroke-dasharray="0 100" stroke-dashoffset="0" stroke-width="3.5" stroke-linecap="round"></circle>
+                </svg>
+                <div class="absolute inset-0 flex flex-col items-center justify-center text-center">
+                    <span class="text-6xl font-black text-primary leading-none tracking-tighter">{{ occupied_percent }}<span class="text-2xl font-bold">%</span></span>
+                    <span class="text-[9px] font-black text-slate-400 uppercase tracking-widest mt-2">Uso Actual</span>
+                </div>
+            </div>
+
+            <div class="flex-1 max-w-lg space-y-12">
+                <div class="space-y-6">
+                    <div class="space-y-3">
+                        <div class="flex items-center justify-between">
+                            <div class="flex items-center gap-4">
+                                <div class="size-5 rounded-lg bg-primary shadow-xl shadow-primary/20"></div>
+                                <span class="font-black text-slate-900 dark:text-white uppercase tracking-tighter">Espacios Ocupados</span>
+                            </div>
+                            <span class="font-black text-2xl text-primary tracking-tighter">{{ occupied_count }} UNIDADES</span>
+                        </div>
+                        <div class="w-full bg-slate-50 dark:bg-slate-800 h-5 rounded-2xl overflow-hidden border border-slate-100 dark:border-slate-800/50">
+                            <div id="occupied-bar" class="bg-primary h-full rounded-2xl transition-all duration-1000 ease-out shadow-lg shadow-primary/20" style="width: 0%"></div>
+                        </div>
+                    </div>
+
+                    <div class="space-y-3">
+                        <div class="flex items-center justify-between">
+                            <div class="flex items-center gap-4">
+                                <div class="size-5 rounded-lg bg-green-500 shadow-xl shadow-green-500/20"></div>
+                                <span class="font-black text-slate-900 dark:text-white uppercase tracking-tighter">Espacios Disponibles</span>
+                            </div>
+                            <span class="font-black text-2xl text-green-500 tracking-tighter">{{ vacant_count }} UNIDADES</span>
+                        </div>
+                        <div class="w-full bg-slate-50 dark:bg-slate-800 h-5 rounded-2xl overflow-hidden border border-slate-100 dark:border-slate-800/50">
+                            <div id="vacant-bar" class="bg-green-500 h-full rounded-2xl transition-all duration-1000 ease-out shadow-lg shadow-green-500/20" style="width: 0%"></div>
+                        </div>
+                    </div>
+                </div>
+
+                <div class="p-8 bg-slate-50 dark:bg-slate-800/50 rounded-[2rem] border border-slate-100 dark:border-slate-800 relative group overflow-hidden">
+                    <div class="absolute -right-4 -bottom-4 size-24 bg-primary/5 rounded-full blur-2xl group-hover:scale-150 transition-transform duration-700"></div>
+                    <p class="text-sm font-bold text-slate-500 dark:text-slate-400 leading-relaxed italic relative z-10">
+                        "La analítica predictiva de espacios permite una optimización del 25% en el consumo energético y mejora significativamente la experiencia del usuario final."
+                    </p>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+<script>
+    // Set animations and widths after render to avoid IDE CSS/JS linting issues
+    setTimeout(() => {
+        const container = document.getElementById('stats-container');
+        const occ = parseFloat(container.getAttribute('data-occupied'));
+        const vac = parseFloat(container.getAttribute('data-vacant'));
+        
+        // Progress Bars
+        const occupiedBar = document.getElementById('occupied-bar');
+        const vacantBar = document.getElementById('vacant-bar');
+        if (occupiedBar) occupiedBar.style.width = occ + '%';
+        if (vacantBar) vacantBar.style.width = vac + '%';
+        
+        // Doughnut Chart
+        const occCircle = document.getElementById('occupied-circle');
+        const vacCircle = document.getElementById('vacant-circle');
+        
+        if (vacCircle) vacCircle.setAttribute('stroke-dasharray', `${vac} 100`);
+        if (occCircle) {
+            occCircle.setAttribute('stroke-dasharray', `${occ} 100`);
+            occCircle.setAttribute('stroke-dashoffset', `-${vac}`);
+        }
+    }, 100);
+</script>
+{% endblock %}

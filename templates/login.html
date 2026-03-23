@@ -1,36 +1,134 @@
-<!doctype html>
-<html lang="en">
-  <head>
-    <meta charset="UTF-8" />
-    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-    <title>Login</title>
-    <link
-      rel="stylesheet"
-      href="{{ url_for('static', filename='css/style.css') }}"
-    />
-  </head>
-  <body>
-    <div class="container">
-      <h2>Login</h2>
-      {% with messages = get_flashed_messages() %} {% if messages %} {% for
-      message in messages %}
-      <div class="alert">{{ message }}</div>
-      {% endfor %} {% endif %} {% endwith %}
-      <form method="POST">
-        <div class="form-group">
-          <label for="username">Username</label>
-          <input type="text" id="username" name="username" required />
-        </div>
-        <div class="form-group">
-          <label for="password">Password</label>
-          <input type="password" id="password" name="password" required />
-        </div>
-        <button type="submit">Login</button>
-      </form>
-      <div class="link">
-        Aun no tienes una cuenta?
-        <a href="{{ url_for('register') }}">Register</a>
-      </div>
-    </div>
-  </body>
-</html>
+<!DOCTYPE html>
+
+<html class="light" lang="en"><head>
+<meta charset="utf-8"/>
+<meta content="width=device-width, initial-scale=1.0" name="viewport"/>
+<title>Login</title>
+<script src="https://cdn.tailwindcss.com?plugins=forms,container-queries"></script>
+<link href="https://fonts.googleapis.com/css2?family=Public+Sans:wght@300;400;500;600;700;800;900&display=swap" rel="stylesheet"/>
+<link href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined:wght,FILL@100..700,0..1&display=swap" rel="stylesheet"/>
+<script id="tailwind-config">
+        tailwind.config = {
+            darkMode: "class",
+            theme: {
+                extend: {
+                    colors: {
+                        "primary": "#ec5b13",
+                        "background-light": "#f8f6f6",
+                        "background-dark": "#221610",
+                    },
+                    fontFamily: {
+                        "display": ["Public Sans"]
+                    },
+                    borderRadius: {"DEFAULT": "0.25rem", "lg": "0.5rem", "xl": "0.75rem", "full": "9999px"},
+                },
+            },
+        }
+    </script>
+<style>
+        body {
+            font-family: 'Public Sans', sans-serif;
+        }
+    </style>
+</head>
+<body class="bg-background-light dark:bg-background-dark min-h-screen flex flex-col font-display">
+<!-- Navigation Header -->
+<header class="flex items-center justify-between whitespace-nowrap border-b border-slate-200 dark:border-slate-800 px-6 py-4 md:px-10">
+<div class="flex items-center gap-3 text-primary">
+<div class="size-8 bg-primary/10 rounded-lg flex items-center justify-center">
+<span class="material-symbols-outlined text-primary">layers</span>
+</div>
+<h2 class="text-slate-900 dark:text-slate-100 text-xl font-bold leading-tight tracking-tight">Login</h2>
+</div>
+<div class="flex items-center gap-4">
+<span class="hidden md:block text-sm text-slate-500 dark:text-slate-400">¿No tienes una cuenta?</span>
+<a href="{{ url_for('register') }}" class="flex min-w-[84px] cursor-pointer items-center justify-center rounded-xl h-10 px-5 bg-primary/10 text-primary text-sm font-bold hover:bg-primary hover:text-white transition-colors">
+<span>Registrarse</span>
+</a>
+</div>
+</header>
+<!-- Main Content -->
+<main class="flex-1 flex items-center justify-center p-6 relative overflow-hidden">
+<!-- Abstract background pattern -->
+<div class="absolute top-0 left-0 w-full h-full opacity-10 pointer-events-none">
+<div class="absolute -top-24 -left-24 w-96 h-96 bg-primary rounded-full blur-3xl"></div>
+<div class="absolute -bottom-24 -right-24 w-96 h-96 bg-primary rounded-full blur-3xl"></div>
+</div>
+<div class="w-full max-w-[480px] z-10">
+<!-- Login Card -->
+<div class="bg-white dark:bg-slate-900 shadow-2xl shadow-primary/5 rounded-2xl p-8 md:p-10 border border-slate-100 dark:border-slate-800">
+<div class="mb-8">
+<h1 class="text-slate-900 dark:text-slate-100 text-3xl font-black leading-tight tracking-tight mb-2">Iniciar Sesión</h1>
+<p class="text-slate-500 dark:text-slate-400 text-base">Bienvenido de vuelta. Ingresa tus credenciales para continuar.</p>
+</div>
+
+{% with messages = get_flashed_messages() %}
+  {% if messages %}
+    {% for message in messages %}
+      <div class="mb-4 p-3 rounded-xl bg-red-50 border border-red-100 text-red-600 text-sm font-medium">{{ message }}</div>
+    {% endfor %}
+  {% endif %}
+{% endwith %}
+
+<form action="#" class="space-y-5" method="POST">
+<!-- Username Field -->
+<div class="flex flex-col gap-2">
+<label class="text-slate-700 dark:text-slate-300 text-sm font-semibold" for="username">Username</label>
+<div class="relative">
+<span class="material-symbols-outlined absolute left-4 top-1/2 -translate-y-1/2 text-slate-400 text-xl">person</span>
+<input class="w-full pl-12 pr-4 py-3.5 rounded-xl border border-slate-200 dark:border-slate-700 bg-slate-50 dark:bg-slate-800 text-slate-900 dark:text-slate-100 focus:ring-2 focus:ring-primary/20 focus:border-primary outline-none transition-all placeholder:text-slate-400" id="username" name="username" placeholder="Tu nombre de usuario" required="" type="text"/>
+</div>
+</div>
+<!-- Password Field -->
+<div class="flex flex-col gap-2">
+<label class="text-slate-700 dark:text-slate-300 text-sm font-semibold" for="password">Password</label>
+<div class="relative">
+<span class="material-symbols-outlined absolute left-4 top-1/2 -translate-y-1/2 text-slate-400 text-xl">lock</span>
+<input class="w-full pl-12 pr-12 py-3.5 rounded-xl border border-slate-200 dark:border-slate-700 bg-slate-50 dark:bg-slate-800 text-slate-900 dark:text-slate-100 focus:ring-2 focus:ring-primary/20 focus:border-primary outline-none transition-all placeholder:text-slate-400" id="password" name="password" placeholder="••••••••" required="" type="password"/>
+<button class="absolute right-4 top-1/2 -translate-y-1/2 text-slate-400 hover:text-primary transition-colors" type="button">
+<span class="material-symbols-outlined text-xl">visibility</span>
+</button>
+</div>
+</div>
+<!-- Submit Button -->
+<div class="pt-4">
+<button class="w-full bg-primary hover:bg-primary/90 text-white font-bold py-4 rounded-xl shadow-lg shadow-primary/25 transition-all active:scale-[0.98] flex items-center justify-center gap-2" type="submit">
+<span>Iniciar Sesión</span>
+<span class="material-symbols-outlined text-lg">arrow_forward</span>
+</button>
+</div>
+</form>
+
+<!-- Divider -->
+<div class="relative mt-6 mb-6">
+  <div class="absolute inset-0 flex items-center">
+    <div class="w-full border-t border-slate-200 dark:border-slate-700"></div>
+  </div>
+  <div class="relative flex justify-center text-sm">
+    <span class="px-2 bg-white dark:bg-slate-900 text-slate-500">O continuar con</span>
+  </div>
+</div>
+<!-- Google Login -->
+<div>
+  <a href="{{ url_for('google.login') }}" class="w-full flex justify-center items-center gap-3 px-4 py-3.5 border border-slate-200 dark:border-slate-700 rounded-xl text-sm font-semibold text-slate-700 dark:text-slate-300 bg-white dark:bg-slate-800 hover:bg-slate-50 dark:hover:bg-slate-700 transition-all duration-200 shadow-sm">
+    <img src="https://www.svgrepo.com/show/475656/google-color.svg" alt="Google" class="w-5 h-5">
+    Google
+  </a>
+</div>
+
+<!-- Footer link for mobile -->
+<div class="mt-8 pt-6 border-t border-slate-100 dark:border-slate-800 text-center md:hidden">
+<p class="text-slate-500 dark:text-slate-400 text-sm">
+                    ¿No tienes una cuenta? <a class="text-primary font-bold hover:underline" href="{{ url_for('register') }}">Regístrate</a>
+</p>
+</div>
+</div>
+</div>
+</main>
+<!-- Footer -->
+<footer class="p-6 text-center">
+<p class="text-xs text-slate-400 dark:text-slate-600">
+        © 2026 Alexis Diaz. Todos los derechos reservados.
+    </p>
+</footer>
+</body></html>

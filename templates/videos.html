@@ -1,0 +1,110 @@
+{% extends "base.html" %}
+
+{% block title %}Entretenimiento - Admin Hub{% endblock %}
+
+{% block content %}
+<div class="space-y-12 pb-20">
+    <!-- Header Section -->
+    <div class="flex flex-col md:flex-row md:items-center justify-between gap-8">
+        <div>
+            <div class="flex items-center gap-4 text-primary mb-2">
+                <span class="material-symbols-outlined text-5xl">play_circle</span>
+                <h1 class="text-4xl font-black tracking-tighter text-slate-900 dark:text-white uppercase">Zona de Entretenimiento</h1>
+            </div>
+            <p class="text-slate-500 dark:text-slate-400 font-medium italic">Explora contenido multimedia y relájate sin salir de la plataforma.</p>
+        </div>
+        <div class="flex items-center gap-3">
+            <div class="px-5 py-2.5 bg-primary/5 rounded-2xl flex items-center gap-3 border border-primary/10">
+                <span class="material-symbols-outlined text-primary text-xl">smart_display</span>
+                <span class="text-xs font-black uppercase tracking-widest text-slate-600 dark:text-slate-400">Powered by YouTube</span>
+            </div>
+        </div>
+    </div>
+
+    <!-- Search Bar Section -->
+    <div class="max-w-4xl mx-auto w-full">
+        <form action="{{ url_for('videos') }}" method="GET" class="relative group">
+            <div class="absolute inset-y-0 left-0 pl-6 flex items-center pointer-events-none">
+                <span class="material-symbols-outlined text-slate-400 group-focus-within:text-primary transition-colors text-2xl">search</span>
+            </div>
+            <input name="query" value="{{ search_query }}" class="block w-full pl-16 pr-32 py-6 bg-white dark:bg-slate-900 border border-slate-100 dark:border-slate-800 rounded-[2rem] focus:ring-4 focus:ring-primary/5 focus:border-primary text-xl shadow-2xl shadow-slate-200/50 dark:shadow-none placeholder:text-slate-300 dark:placeholder:text-slate-600 transition-all outline-none font-bold" placeholder="¿Qué quieres ver hoy?" type="text" required/>
+            <div class="absolute inset-y-0 right-4 flex items-center">
+                <button type="submit" class="bg-primary hover:brightness-110 text-white px-10 py-3.5 rounded-2xl text-xs font-black uppercase tracking-widest transition-all shadow-xl shadow-primary/30 active:scale-95">
+                    Buscar
+                </button>
+            </div>
+        </form>
+    </div>
+
+    <!-- Results Section -->
+    <div class="space-y-8">
+        {% if search_query %}
+        <div class="flex items-center justify-between border-b border-slate-100 dark:border-slate-800 pb-6">
+            <h3 class="text-xl font-black text-slate-900 dark:text-white uppercase tracking-tighter">
+                Mostrando resultados para <span class="text-primary italic">"{{ search_query }}"</span>
+            </h3>
+            <span class="text-xs font-black text-slate-400 uppercase tracking-widest">{{ videos|length }} Videos encontrados</span>
+        </div>
+        {% endif %}
+
+        {% if error %}
+        <div class="p-8 bg-red-50 dark:bg-red-950/20 text-red-500 border border-red-100 dark:border-red-900/30 rounded-[2rem] flex items-center gap-4 font-black uppercase tracking-widest text-xs">
+            <span class="material-symbols-outlined text-2xl text-red-500">warning</span>
+            {{ error }}
+        </div>
+        {% endif %}
+
+        {% if videos %}
+        <div class="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-3 2xl:grid-cols-4 gap-10">
+            {% for video in videos %}
+            <div class="group bg-white dark:bg-slate-900 rounded-[2.5rem] overflow-hidden border border-slate-100 dark:border-slate-800 shadow-2xl shadow-slate-200/50 dark:shadow-none hover:border-primary/40 transition-all duration-500">
+                <div class="aspect-video w-full bg-slate-900 relative">
+                    <iframe 
+                        class="absolute inset-0 w-full h-full opacity-90 group-hover:opacity-100 transition-opacity"
+                        src="https://www.youtube.com/embed/{{ video.id }}" 
+                        allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture" 
+                        allowfullscreen>
+                    </iframe>
+                </div>
+                <div class="p-8 space-y-4">
+                    <h4 class="font-black text-lg text-slate-900 dark:text-white leading-tight line-clamp-2 uppercase tracking-tighter group-hover:text-primary transition-colors" title="{{ video.title }}">
+                        {{ video.title }}
+                    </h4>
+                    <p class="text-xs text-slate-500 dark:text-slate-400 line-clamp-2 font-medium leading-relaxed italic" title="{{ video.description }}">
+                        {{ video.description }}
+                    </p>
+                    <div class="pt-4 border-t border-slate-50 dark:border-slate-800 flex items-center justify-between">
+                        <div class="flex items-center gap-2">
+                            <span class="size-2 bg-red-600 rounded-full animate-pulse"></span>
+                            <span class="text-[9px] font-black text-slate-400 uppercase tracking-widest">Live Integration</span>
+                        </div>
+                        <span class="material-symbols-outlined text-slate-300 group-hover:text-primary transition-colors">open_in_new</span>
+                    </div>
+                </div>
+            </div>
+            {% endfor %}
+        </div>
+        {% else %}
+            {% if not error and search_query %}
+            <div class="py-24 text-center flex flex-col items-center max-w-sm mx-auto">
+                <div class="size-32 bg-slate-50 dark:bg-slate-800/50 rounded-[2.5rem] flex items-center justify-center mb-8 text-slate-200 dark:text-slate-700">
+                    <span class="material-symbols-outlined text-7xl">search_off</span>
+                </div>
+                <h3 class="text-2xl font-black text-slate-900 dark:text-white uppercase tracking-tighter mb-3">Sin resultados</h3>
+                <p class="text-slate-500 font-medium leading-relaxed mb-10 italic">No pudimos encontrar nada con esos términos. Intenta algo más general.</p>
+                <button onclick="document.querySelector('input[name=query]').focus()" class="text-[10px] font-black text-primary uppercase tracking-widest hover:tracking-[0.2em] transition-all">Nueva Búsqueda</button>
+            </div>
+            {% endif %}
+        {% endif %}
+
+        {% if videos %}
+        <div class="flex justify-center pt-10">
+            <button onclick="window.scrollTo({top: 0, behavior: 'smooth'});" class="bg-slate-900 dark:bg-slate-100 text-white dark:text-slate-900 px-10 py-4 rounded-2xl text-[10px] font-black uppercase tracking-widest hover:bg-primary hover:text-white transition-all shadow-xl shadow-slate-900/10 active:scale-95 flex items-center gap-3">
+                <span class="material-symbols-outlined text-lg">arrow_upward</span>
+                Volver al inicio
+            </button>
+        </div>
+        {% endif %}
+    </div>
+</div>
+{% endblock %}

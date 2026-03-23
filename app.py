@@ -1,16 +1,24 @@
 from flask import Flask, render_template, redirect, url_for, request, flash
 from flask_login import LoginManager, login_user, logout_user, login_required, current_user
 from werkzeug.security import generate_password_hash, check_password_hash
-from werkzeug.security import generate_password_hash, check_password_hash
 from model.models import db, User, Classroom, Reservation, Message
 from flask_socketio import SocketIO, emit, join_room, leave_room
 from datetime import datetime
 import os
+import requests
+from dotenv import load_dotenv
 from werkzeug.utils import secure_filename
+from fpdf import FPDF
+from flask import send_file
+import io
+from flask_dance.contrib.google import make_google_blueprint, google
+
+os.environ['OAUTHLIB_INSECURE_TRANSPORT'] = '1'
+basedir = os.path.abspath(os.path.dirname(__file__))
+load_dotenv(os.path.join(basedir, '.env'), override=True)
 
 
 app = Flask(__name__)
-
 socketio = SocketIO(app)
 
 app.config['SECRET_KEY'] = 'your_secret_key' # Change this to a random secret key
@@ -21,6 +29,15 @@ app.config['UPLOAD_FOLDER'] = 'static/uploads'
 
 # Ensure upload directory exists
 os.makedirs(os.path.join(app.root_path, app.config['UPLOAD_FOLDER']), exist_ok=True)
+
+# Google OAuth Config
+google_bp = make_google_blueprint(
+    client_id=os.environ.get("GOOGLE_OAUTH_CLIENT_ID"),
+    client_secret=os.environ.get("GOOGLE_OAUTH_CLIENT_SECRET"),
+    scope=["openid", "https://www.googleapis.com/auth/userinfo.email", "https://www.googleapis.com/auth/userinfo.profile"],
+    redirect_to="google_login"
+)
+app.register_blueprint(google_bp, url_prefix="/login")
 
 db.init_app(app)
 
@@ -149,6 +166,30 @@ def login():
         flash('Invalid username or password')
     return render_template('login.html')
 
+@app.route('/login/google_auth')
+def google_login():
+    if not google.authorized:
+        return redirect(url_for('google.login'))
+        
+    resp = google.get('/oauth2/v2/userinfo')
+    if not resp.ok:
+        flash('Hubo un error al obtener la información de Google.')
+        return redirect(url_for('login'))
+        
+    user_info = resp.json()
+    email = user_info['email']
+    
+    user = User.query.filter_by(username=email).first()
+    if not user:
+        # Create a new user using the Google email
+        random_pwd = generate_password_hash('google_oauth_placeholder', method='scrypt')
+        user = User(username=email, password=random_pwd)
+        db.session.add(user)
+        db.session.commit()
+        
+    login_user(user)
+    return redirect(url_for('index'))
+
 @app.route('/register', methods=['GET', 'POST'])
 def register():
     if request.method == 'POST':
@@ -276,7 +317,6 @@ def handle_message(data):
     }
     
     # Emit to recipient's room (using their user_id as room name)
-    # Also emit back to sender so they see it confirmed (or handle via JS optimistically)
     emit('receive_message', payload, room=str(recipient_id))
     emit('receive_message', payload, room=str(current_user.id))
     
@@ -305,6 +345,113 @@ def handle_message(data):
     emit('chat_list_update', sender_payload, room=str(current_user.id))
 
 
+@app.route('/stats')
+@login_required
+def stats():
+    now = datetime.now()
+    
+    # Get total classrooms
+    total_classrooms = Classroom.query.count()
+    
+    # Get active reservations
+    occupied_count = Reservation.query.filter(
+        Reservation.start_time <= now,
+        Reservation.end_time >= now
+    ).count()
+    
+    vacant_count = max(0, total_classrooms - occupied_count)
+    
+    # Calculate percentages
+    occupied_percent = (occupied_count / total_classrooms * 100) if total_classrooms > 0 else 0
+    vacant_percent = (vacant_count / total_classrooms * 100) if total_classrooms > 0 else 0
+    
+    return render_template('stats.html', 
+                           occupied_percent=round(occupied_percent, 1), 
+                           vacant_percent=round(vacant_percent, 1),
+                           occupied_count=occupied_count,
+                           vacant_count=vacant_count,
+                           user=current_user)
+
+@app.route('/download_report')
+@login_required
+def download_report():
+    reservations = db.session.query(Reservation, Classroom, User).join(
+        Classroom, Reservation.classroom_id == Classroom.id
+    ).join(
+        User, Reservation.user_id == User.id
+    ).order_by(Reservation.start_time.desc()).all()
+
+    # Create PDF
+    pdf = FPDF()
+    pdf.add_page()
+    pdf.set_font("Arial", "B", 16)
+    pdf.cell(0, 10, "Reporte de Reservas de Salas", ln=True, align="C")
+    pdf.ln(10)
+
+    # Table Header
+    pdf.set_font("Arial", "B", 12)
+    pdf.cell(40, 10, "Sala", 1)
+    pdf.cell(60, 10, "Usuario", 1)
+    pdf.cell(45, 10, "Inicio", 1)
+    pdf.cell(45, 10, "Fin", 1)
+    pdf.ln()
+
+    # Table Content
+    pdf.set_font("Arial", "", 12)
+    for res, room, user in reservations:
+        pdf.cell(40, 10, room.name, 1)
+        pdf.cell(60, 10, user.username, 1)
+        pdf.cell(45, 10, res.start_time.strftime('%Y-%m-%d %H:%M'), 1)
+        pdf.cell(45, 10, res.end_time.strftime('%Y-%m-%d %H:%M'), 1)
+        pdf.ln()
+
+    output = io.BytesIO()
+    pdf_str = pdf.output()
+    if isinstance(pdf_str, str): 
+        output.write(pdf_str.encode('latin-1'))
+    else:
+        output.write(pdf_str)
+    output.seek(0)
+
+    current_date = datetime.now().strftime('%Y-%m-%d')
+    return send_file(output, 
+                     as_attachment=True, 
+                     download_name=f'reporte_reservas_{current_date}.pdf',
+                     mimetype='application/pdf')
+
+@app.route('/videos', methods=['GET', 'POST'])
+@login_required
+def videos():
+    search_query = request.form.get('query') or request.args.get('query', 'programacion')
+    
+    api_key = os.environ.get('YOUTUBE_API_KEY')
+    videos = []
+    error = None
+
+    if api_key:
+        try:
+            url = f"https://www.googleapis.com/youtube/v3/search?part=snippet&q={search_query}&type=video&maxResults=9&key={api_key}"
+            response = requests.get(url)
+            response.raise_for_status() # Raise exception for bad status codes
+            videos_data = response.json()
+            
+            if 'items' in videos_data:
+                for item in videos_data['items']:
+                    video_info = {
+                        'id': item['id']['videoId'],
+                        'title': item['snippet']['title'],
+                        'thumbnail': item['snippet']['thumbnails']['high']['url'],
+                        'description': item['snippet']['description']
+                    }
+                    videos.append(video_info)
+        except requests.exceptions.RequestException as e:
+            error = "Hubo un problema al contactar con YouTube. Intenta de nuevo más tarde."
+            print(f"YouTube API Error: {e}")
+    else:
+        error = "La clave de la API de YouTube no está configurada."
+
+    return render_template('videos.html', videos=videos, search_query=search_query, error=error, user=current_user)
+
 @socketio.on('join')
 def on_join(data):
     # User joins their own room (identified by user_id) to receive messages
@@ -314,3 +461,4 @@ if __name__ == '__main__':
     with app.app_context():
         db.create_all()
     socketio.run(app, debug=True)
+# End of file
