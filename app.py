@@ -17,10 +17,13 @@ os.environ['OAUTHLIB_INSECURE_TRANSPORT'] = '1'
 basedir = os.path.abspath(os.path.dirname(__file__))
 load_dotenv(os.path.join(basedir, '.env'), override=True)
 
+from werkzeug.middleware.proxy_fix import ProxyFix
 
 app = Flask(__name__)
-socketio = SocketIO(app)
-
+# Le decimos a Flask que confíe en las cabeceras de Nginx para generar la URL correcta de Google Auth
+app.wsgi_app = ProxyFix(app.wsgi_app, x_for=1, x_proto=1, x_host=1, x_prefix=1)
+# Permitir conexiones de WebSockets desde cualquier origen cuando estamos detrás de Nginx
+socketio = SocketIO(app, cors_allowed_origins="*")
 app.config['SECRET_KEY'] = 'your_secret_key' # Change this to a random secret key
 # SQL Server Connection
 # 'host.docker.internal' le dice a Linux que salga a buscar en tu Windows local
