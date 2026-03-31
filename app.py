@@ -23,7 +23,9 @@ socketio = SocketIO(app)
 
 app.config['SECRET_KEY'] = 'your_secret_key' # Change this to a random secret key
 # SQL Server Connection
-app.config['SQLALCHEMY_DATABASE_URI'] = r'mssql+pyodbc://@ALEXIS\SQLEXPRESS/Integradora?driver=ODBC+Driver+17+for+SQL+Server&trusted_connection=yes'
+# 'host.docker.internal' le dice a Linux que salga a buscar en tu Windows local
+# Fíjate que le puse ":1433" en lugar de "\SQLEXPRESS"
+app.config['SQLALCHEMY_DATABASE_URI'] = r'mssql+pyodbc://usuario1:12345@host.docker.internal:1433/Integradora?driver=ODBC+Driver+17+for+SQL+Server'
 app.config['SQLALCHEMY_TRACK_MODIFICATIONS'] = False
 app.config['UPLOAD_FOLDER'] = 'static/uploads'
 
@@ -460,5 +462,7 @@ def on_join(data):
 if __name__ == '__main__':
     with app.app_context():
         db.create_all()
-    socketio.run(app, debug=True)
+    # Cambiado a 0.0.0.0 para que el contenedor exponga el puerto correctamente
+    # allow_unsafe_werkzeug=True evita que Flask-SocketIO bloquee la app en Docker
+    socketio.run(app, host='0.0.0.0', port=5000, debug=True, allow_unsafe_werkzeug=True)
 # End of file

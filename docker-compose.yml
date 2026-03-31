@@ -1,0 +1,23 @@
+version: '3.8'
+
+services:
+  # 1. Tu aplicación Flask (se construirá usando el Dockerfile de la raíz)
+  web:
+    build: .
+    container_name: flask_app
+    restart: always
+    expose:
+      - "5000" # Exponemos el 5000 INTERNAMENTE hacia Nginx, pero no a internet directamente
+
+  # 2. El servidor Nginx oficial
+  nginx:
+    image: nginx:latest
+    container_name: nginx_proxy
+    restart: always
+    ports:
+      - "80:80"  # Nginx sí recibe a cualquier usuario de afuera por el puerto 80 (HTTP)
+    volumes:
+      # Montamos el archivo de configuración que creamos dentro del contenedor oficial de Nginx
+      - ./nginx/nginx.conf:/etc/nginx/conf.d/default.conf
+    depends_on:
+      - web # Le decimos a Nginx que espere a que Flask cargue primero
