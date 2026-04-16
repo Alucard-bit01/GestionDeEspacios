@@ -26,9 +26,9 @@ app.wsgi_app = ProxyFix(app.wsgi_app, x_for=1, x_proto=1, x_host=1, x_prefix=1)
 socketio = SocketIO(app, cors_allowed_origins="*")
 app.config['SECRET_KEY'] = 'your_secret_key' # Change this to a random secret key
 # SQL Server Connection
-# 'host.docker.internal' le dice a Linux que salga a buscar en tu Windows local
-# Fíjate que le puse ":1433" en lugar de "\SQLEXPRESS"
-app.config['SQLALCHEMY_DATABASE_URI'] = r'mssql+pyodbc://usuario1:12345@host.docker.internal:1433/Integradora?driver=ODBC+Driver+17+for+SQL+Server'
+# 'host.docker.internal' se usará en Docker, 'localhost' se usará localmente
+db_host = os.environ.get('DB_HOST', 'localhost')
+app.config['SQLALCHEMY_DATABASE_URI'] = f'mssql+pyodbc://usuario1:12345@{db_host}:1433/Integradora?driver=ODBC+Driver+17+for+SQL+Server'
 app.config['SQLALCHEMY_TRACK_MODIFICATIONS'] = False
 app.config['UPLOAD_FOLDER'] = 'static/uploads'
 
@@ -151,6 +151,20 @@ def cancel_reservation(room_id):
         flash('Reserva cancelada.')
     else:
         flash('No se encontró tu reserva para cancelar.')
+        
+    return redirect(url_for('reservations'))
+
+@app.route('/classrooms/add', methods=['POST'])
+@login_required
+def add_classroom():
+    name = request.form.get('name')
+    if name:
+        new_room = Classroom(name=name)
+        db.session.add(new_room)
+        db.session.commit()
+        flash(f'Salón "{name}" agregado exitosamente.')
+    else:
+        flash('Error: El nombre del salón no puede estar vacío.')
         
     return redirect(url_for('reservations'))
 

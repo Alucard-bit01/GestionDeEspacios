@@ -8,6 +8,8 @@ services:
     restart: always
     expose:
       - "5000" # Exponemos el 5000 INTERNAMENTE hacia Nginx, pero no a internet directamente
+    environment:
+      - DB_HOST=host.docker.internal
     volumes:
       - .:/app  # <-- ¡Agregado! Esto hace que los cambios en HTML o Python se sincronicen en vivo
 

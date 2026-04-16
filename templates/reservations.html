@@ -11,6 +11,9 @@
             <p class="text-slate-500 max-w-lg font-medium italic">Gestione y reserve salones disponibles en el campus universitario de forma centralizada.</p>
         </div>
         <div class="flex items-center gap-3">
+            <button class="bg-indigo-600 hover:scale-105 active:scale-95 text-white px-5 py-2.5 rounded-xl font-bold text-sm transition-all shadow-lg shadow-indigo-600/20 flex items-center gap-2 uppercase tracking-widest" onclick="openClassroomModal()">
+                <span class="material-symbols-outlined text-lg">domain_add</span> Nuevo Salón
+            </button>
             <button class="bg-white dark:bg-slate-900 p-2.5 rounded-xl border border-slate-200 dark:border-slate-800 text-slate-500 hover:text-primary transition-all shadow-sm" onclick="window.location.reload()">
                 <span class="material-symbols-outlined">refresh</span>
             </button>
@@ -204,12 +207,46 @@
             </div>
         </div>
     </div>
+    <!-- Modal: Agregar Salón -->
+    <div id="classroomModal" class="hidden w-full max-w-lg bg-white dark:bg-slate-900 rounded-[2rem] shadow-2xl border border-slate-200 dark:border-slate-800 overflow-hidden transform scale-95 transition-all">
+        <div class="p-8 border-b border-slate-100 dark:border-slate-800 flex justify-between items-center bg-slate-50/50 dark:bg-slate-800/50">
+            <h4 class="font-black text-2xl text-slate-900 dark:text-white uppercase tracking-tighter">Agregar Nuevo Salón</h4>
+            <button onclick="closeModal()" class="text-slate-400 hover:text-primary transition-colors">
+                <span class="material-symbols-outlined block text-2xl">close</span>
+            </button>
+        </div>
+        <form id="classroomForm" method="POST" action="/classrooms/add">
+            <div class="p-8">
+                <div>
+                    <label for="room_name" class="block text-[10px] font-black text-slate-400 uppercase tracking-widest mb-2 px-1">Nombre del Salón</label>
+                    <input type="text" id="room_name" name="name" required placeholder="Ej. Laboratorio TIC" class="w-full bg-slate-100 dark:bg-slate-800 border-none rounded-2xl text-sm focus:ring-2 focus:ring-primary/20 py-4 px-4 font-bold text-slate-700 dark:text-slate-200 transition-all"/>
+                </div>
+                
+                <div class="mt-10 flex gap-4">
+                    <button type="button" onclick="closeModal()" class="flex-1 px-6 py-4 border-2 border-slate-100 dark:border-slate-800 rounded-2xl font-black text-xs text-slate-400 hover:bg-slate-50 dark:hover:bg-slate-800 transition-all uppercase tracking-widest">Cancelar</button>
+                    <button type="submit" class="flex-1 px-6 py-4 bg-primary hover:brightness-110 text-white rounded-2xl font-black text-xs shadow-2xl shadow-primary/30 transition-all active:scale-95 uppercase tracking-widest">Crear Salón</button>
+                </div>
+            </div>
+        </form>
+    </div>
+
 </div>
 
 <script>
     const modalOverlay = document.getElementById('modalOverlay');
     const bookingModal = document.getElementById('bookingModal');
     const cancelModal = document.getElementById('cancelModal');
+    const classroomModal = document.getElementById('classroomModal');
+
+    function openClassroomModal() {
+        modalOverlay.classList.remove('hidden');
+        modalOverlay.classList.add('flex');
+        
+        classroomModal.classList.remove('hidden');
+        void classroomModal.offsetWidth;
+        classroomModal.classList.remove('scale-95');
+        classroomModal.classList.add('scale-100');
+    }
 
     function openBookingModal(roomId, roomName) {
         modalOverlay.classList.remove('hidden');
@@ -263,12 +300,16 @@
         
         cancelModal.classList.add('scale-95');
         cancelModal.classList.remove('scale-100');
+
+        classroomModal.classList.add('scale-95');
+        classroomModal.classList.remove('scale-100');
         
         setTimeout(() => {
             modalOverlay.classList.remove('flex');
             modalOverlay.classList.add('hidden');
             bookingModal.classList.add('hidden');
             cancelModal.classList.add('hidden');
+            classroomModal.classList.add('hidden');
         }, 300);
     }
 
