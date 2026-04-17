@@ -1,7 +1,7 @@
-from flask import Flask, render_template, redirect, url_for, request, flash
+from flask import Flask, render_template, redirect, url_for, request, flash, abort
 from flask_login import LoginManager, login_user, logout_user, login_required, current_user
 from werkzeug.security import generate_password_hash, check_password_hash
-from model.models import db, User, Classroom, Reservation, Message
+from model.models import db, User, Classroom, Reservation, Message, MapPin
 from flask_socketio import SocketIO, emit, join_room, leave_room
 from datetime import datetime
 import os
@@ -20,13 +20,9 @@ load_dotenv(os.path.join(basedir, '.env'), override=True)
 from werkzeug.middleware.proxy_fix import ProxyFix
 
 app = Flask(__name__)
-# Le decimos a Flask que confíe en las cabeceras de Nginx para generar la URL correcta de Google Auth
 app.wsgi_app = ProxyFix(app.wsgi_app, x_for=1, x_proto=1, x_host=1, x_prefix=1)
-# Permitir conexiones de WebSockets desde cualquier origen cuando estamos detrás de Nginx
 socketio = SocketIO(app, cors_allowed_origins="*")
-app.config['SECRET_KEY'] = 'your_secret_key' # Change this to a random secret key
-# SQL Server Connection
-# 'host.docker.internal' se usará en Docker, 'localhost' se usará localmente
+app.config['SECRET_KEY'] = 'your_secret_key' 
 db_host = os.environ.get('DB_HOST', 'localhost')
 app.config['SQLALCHEMY_DATABASE_URI'] = f'mssql+pyodbc://usuario1:12345@{db_host}:1433/Integradora?driver=ODBC+Driver+17+for+SQL+Server'
 app.config['SQLALCHEMY_TRACK_MODIFICATIONS'] = False
@@ -94,8 +90,13 @@ def reservations():
         room.active_reservation = active_reservations.get(room.id)
         room.is_reserved = room.id in active_reservations
         
+    map_pins = MapPin.query.all()
+    paypal_client_id = os.environ.get('PAYPAL_CLIENT_ID', 'test')
+        
     return render_template('reservations.html', 
                            classrooms=classrooms, 
+                           map_pins=map_pins,
+                           paypal_client_id=paypal_client_id,
                            user=current_user)
 
 @app.route('/reservations/book/<int:room_id>', methods=['POST'])
@@ -157,15 +158,47 @@ def cancel_reservation(room_id):
 @app.route('/classrooms/add', methods=['POST'])
 @login_required
 def add_classroom():
+    if current_user.role != 'admin':
+        abort(403)
     name = request.form.get('name')
-    if name:
-        new_room = Classroom(name=name)
+    map_pin_id = request.form.get('map_pin_id')
+    is_paid = 'is_paid' in request.form
+    price_per_hour = request.form.get('price_per_hour', 0.0)
+    
+    if name and map_pin_id:
+        try:
+            validated_price = float(price_per_hour) if is_paid else 0.0
+        except ValueError:
+            validated_price = 0.0
+
+        new_room = Classroom(
+            name=name, 
+            map_pin_id=map_pin_id,
+            is_paid=is_paid,
+            price_per_hour=validated_price
+        )
         db.session.add(new_room)
         db.session.commit()
         flash(f'Salón "{name}" agregado exitosamente.')
     else:
-        flash('Error: El nombre del salón no puede estar vacío.')
+        flash('Error: El nombre del salón y el edificio son obligatorios.')
         
+    return redirect(url_for('reservations'))
+
+@app.route('/classrooms/delete/<int:room_id>', methods=['POST'])
+@login_required
+def delete_classroom(room_id):
+    if current_user.role != 'admin':
+        abort(403)
+        
+    room = Classroom.query.get_or_404(room_id)
+    # Cascade delete reservations manually if DB doesn't do it automatically
+    Reservation.query.filter_by(classroom_id=room_id).delete()
+    
+    db.session.delete(room)
+    db.session.commit()
+    flash(f'El salón "{room.name}" ha sido eliminado exitosamente.')
+    
     return redirect(url_for('reservations'))
 
 @app.route('/videocall')
@@ -202,7 +235,7 @@ def google_login():
     if not user:
         # Create a new user using the Google email
         random_pwd = generate_password_hash('google_oauth_placeholder', method='scrypt')
-        user = User(username=email, password=random_pwd)
+        user = User(username=email, password=random_pwd, role='user')
         db.session.add(user)
         db.session.commit()
         
@@ -220,7 +253,7 @@ def register():
             flash('Username already exists')
             return redirect(url_for('register'))
             
-        new_user = User(username=username, password=generate_password_hash(password, method='scrypt'))
+        new_user = User(username=username, password=generate_password_hash(password, method='scrypt'), role='user')
         db.session.add(new_user)
         db.session.commit()
         
@@ -232,6 +265,26 @@ def register():
 @login_required
 def logout():
     logout_user()
+    return redirect(url_for('index'))
+
+
+@app.route('/admin/register_user', methods=['POST'])
+@login_required
+def admin_register_user():
+    if current_user.role != 'admin':
+        abort(403)
+    username = request.form.get('username')
+    password = request.form.get('password')
+    
+    user = User.query.filter_by(username=username).first()
+    if user:
+        flash('Username already exists')
+        return redirect(url_for('index'))
+        
+    new_user = User(username=username, password=generate_password_hash(password, method='scrypt'), role='user')
+    db.session.add(new_user)
+    db.session.commit()
+    flash('Usuario básico creado exitosamente.')
     return redirect(url_for('index'))
 
 
@@ -367,6 +420,8 @@ def handle_message(data):
 @app.route('/stats')
 @login_required
 def stats():
+    if current_user.role != 'admin':
+        abort(403)
     now = datetime.now()
     
     # Get total classrooms
@@ -394,6 +449,8 @@ def stats():
 @app.route('/download_report')
 @login_required
 def download_report():
+    if current_user.role != 'admin':
+        abort(403)
     reservations = db.session.query(Reservation, Classroom, User).join(
         Classroom, Reservation.classroom_id == Classroom.id
     ).join(
@@ -471,6 +528,42 @@ def videos():
 
     return render_template('videos.html', videos=videos, search_query=search_query, error=error, user=current_user)
 
+@app.route('/map')
+@login_required
+def map_view():
+    return render_template('map.html', user=current_user)
+
+@app.route('/map/pins', methods=['GET'])
+@login_required
+def get_pins():
+    pins = MapPin.query.all()
+    pin_data = []
+    for p in pins:
+        rooms = [{"id": c.id, "name": c.name} for c in p.classrooms]
+        pin_data.append({
+            "id": p.id, 
+            "name": p.name, 
+            "lat": p.latitude, 
+            "lng": p.longitude,
+            "classrooms": rooms
+        })
+    return {"pins": pin_data}
+
+@app.route('/map/pins', methods=['POST'])
+@login_required
+def add_pin():
+    if current_user.role != 'admin':
+        abort(403)
+    data = request.get_json()
+    new_pin = MapPin(
+        name=data.get('name'),
+        latitude=data.get('lat'),
+        longitude=data.get('lng')
+    )
+    db.session.add(new_pin)
+    db.session.commit()
+    return {"message": "Pin agregado exitosamente", "id": new_pin.id}
+
 @socketio.on('join')
 def on_join(data):
     # User joins their own room (identified by user_id) to receive messages
@@ -479,7 +572,4 @@ def on_join(data):
 if __name__ == '__main__':
     with app.app_context():
         db.create_all()
-    # Cambiado a 0.0.0.0 para que el contenedor exponga el puerto correctamente
-    # allow_unsafe_werkzeug=True evita que Flask-SocketIO bloquee la app en Docker
     socketio.run(app, host='0.0.0.0', port=5000, debug=True, allow_unsafe_werkzeug=True)
-# End of file

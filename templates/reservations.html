@@ -11,9 +11,11 @@
             <p class="text-slate-500 max-w-lg font-medium italic">Gestione y reserve salones disponibles en el campus universitario de forma centralizada.</p>
         </div>
         <div class="flex items-center gap-3">
+            {% if current_user.role == 'admin' %}
             <button class="bg-indigo-600 hover:scale-105 active:scale-95 text-white px-5 py-2.5 rounded-xl font-bold text-sm transition-all shadow-lg shadow-indigo-600/20 flex items-center gap-2 uppercase tracking-widest" onclick="openClassroomModal()">
                 <span class="material-symbols-outlined text-lg">domain_add</span> Nuevo Salón
             </button>
+            {% endif %}
             <button class="bg-white dark:bg-slate-900 p-2.5 rounded-xl border border-slate-200 dark:border-slate-800 text-slate-500 hover:text-primary transition-all shadow-sm" onclick="window.location.reload()">
                 <span class="material-symbols-outlined">refresh</span>
             </button>
@@ -41,8 +43,15 @@
                                 <span class="material-symbols-outlined text-xl filled-icon">lock</span>
                             </div>
                         </div>
-                        <div class="p-6">
-                            <h3 class="font-black text-primary text-xl uppercase tracking-tighter truncate">{{ room.name }}</h3>
+                        <div class="p-6 relative">
+                            {% if current_user.role == 'admin' %}
+                            <form action="/classrooms/delete/{{ room.id }}" method="POST" class="absolute top-6 right-6" onsubmit="event.stopPropagation(); return confirm('¿Seguro que deseas eliminar este salón y cancelar TODAS sus reservas actuales y futuras permanentemente?');">
+                                <button type="submit" class="text-slate-300 hover:text-red-500 transition-colors p-1" title="Eliminar Salón">
+                                    <span class="material-symbols-outlined text-lg">delete</span>
+                                </button>
+                            </form>
+                            {% endif %}
+                            <h3 class="font-black text-primary text-xl uppercase tracking-tighter truncate pr-8">{{ room.name }}</h3>
                             <div class="mt-4 flex items-center gap-3">
                                 <div class="bg-primary/10 p-2 rounded-xl">
                                     <span class="material-symbols-outlined text-primary text-lg">schedule</span>
@@ -66,8 +75,15 @@
                                 <span class="material-symbols-outlined text-xl filled-icon">lock</span>
                             </div>
                         </div>
-                        <div class="p-6">
-                            <h3 class="font-black text-slate-500 text-xl uppercase tracking-tighter truncate">{{ room.name }}</h3>
+                        <div class="p-6 relative">
+                            {% if current_user.role == 'admin' %}
+                            <form action="/classrooms/delete/{{ room.id }}" method="POST" class="absolute top-6 right-6" onsubmit="event.stopPropagation(); return confirm('¿Seguro que deseas eliminar este salón y cancelar TODAS sus reservas actuales y futuras permanentemente?');">
+                                <button type="submit" class="text-slate-300 hover:text-red-500 transition-colors p-1" title="Eliminar Salón">
+                                    <span class="material-symbols-outlined text-lg">delete</span>
+                                </button>
+                            </form>
+                            {% endif %}
+                            <h3 class="font-black text-slate-500 text-xl uppercase tracking-tighter truncate pr-8">{{ room.name }}</h3>
                             <div class="mt-4 flex items-center gap-3">
                                 <div class="bg-slate-200 dark:bg-slate-800 p-2 rounded-xl">
                                     <span class="material-symbols-outlined text-slate-400 text-lg">person</span>
@@ -80,16 +96,29 @@
                 {% endif %}
             {% else %}
                 <!-- Disponible -->
-                <div class="group bg-white dark:bg-slate-900 border-2 border-slate-100 dark:border-slate-800 rounded-3xl overflow-hidden hover:shadow-2xl transition-all hover:border-primary/40 cursor-pointer shadow-xl" onclick="openBookingModal('{{ room.id }}', '{{ room.name }}')">
+                <div class="group bg-white dark:bg-slate-900 border-2 border-slate-100 dark:border-slate-800 rounded-3xl overflow-hidden hover:shadow-2xl transition-all hover:border-primary/40 cursor-pointer shadow-xl" onclick="openBookingModal('{{ room.id }}', '{{ room.name }}', {{ 'true' if room.is_paid else 'false' }}, {{ room.price_per_hour or 0 }})">
                     <div class="aspect-video bg-slate-50 dark:bg-slate-800 relative overflow-hidden flex items-center justify-center border-b border-slate-100 dark:border-slate-800">
                         <span class="material-symbols-outlined text-slate-200 dark:text-slate-700 text-6xl group-hover:scale-110 transition-transform duration-500">meeting_room</span>
                         <div class="absolute top-4 left-4 px-3 py-1 bg-green-500 text-white text-[10px] font-black uppercase tracking-widest rounded-lg">Disponible</div>
-                        <div class="absolute top-4 right-4 bg-white/90 dark:bg-slate-800/90 backdrop-blur p-2 rounded-xl text-green-500 shadow-sm border border-slate-100 dark:border-slate-700">
-                            <span class="material-symbols-outlined text-xl">lock_open</span>
-                        </div>
+                        {% if room.is_paid %}
+                            <div class="absolute top-4 right-4 bg-amber-100 text-amber-600 px-3 py-1 rounded-lg text-[10px] font-black uppercase tracking-widest shadow-sm">
+                                ${{ "%.2f"|format(room.price_per_hour) }}/hr
+                            </div>
+                        {% else %}
+                            <div class="absolute top-4 right-4 bg-white/90 dark:bg-slate-800/90 backdrop-blur p-2 rounded-xl text-green-500 shadow-sm border border-slate-100 dark:border-slate-700">
+                                <span class="material-symbols-outlined text-xl">lock_open</span>
+                            </div>
+                        {% endif %}
                     </div>
-                    <div class="p-6">
-                        <h3 class="font-black text-slate-900 dark:text-white group-hover:text-primary transition-colors text-xl uppercase tracking-tighter truncate">{{ room.name }}</h3>
+                    <div class="p-6 relative">
+                        {% if current_user.role == 'admin' %}
+                        <form action="/classrooms/delete/{{ room.id }}" method="POST" class="absolute top-6 right-6 opacity-0 group-hover:opacity-100 transition-opacity" onsubmit="event.stopPropagation(); return confirm('¿Seguro que deseas eliminar este salón permanentemente?');">
+                            <button type="submit" class="text-slate-300 hover:text-red-500 transition-colors p-1" title="Eliminar Salón">
+                                <span class="material-symbols-outlined text-lg">delete</span>
+                            </button>
+                        </form>
+                        {% endif %}
+                        <h3 class="font-black text-slate-900 dark:text-white group-hover:text-primary transition-colors text-xl uppercase tracking-tighter truncate pr-8">{{ room.name }}</h3>
                         <div class="flex items-center gap-4 mt-4">
                             <span class="flex items-center gap-1.5 bg-slate-100 dark:bg-slate-800 py-1.5 px-3 rounded-xl font-bold text-[10px] uppercase tracking-widest text-slate-500">
                                 <span class="material-symbols-outlined text-base">group</span> {{ room.capacity }}
@@ -142,9 +171,15 @@
                     </div>
                 </div>
                 
-                <div class="mt-10 flex gap-4">
-                    <button type="button" onclick="closeModal()" class="flex-1 px-6 py-4 border-2 border-slate-100 dark:border-slate-800 rounded-2xl font-black text-xs text-slate-400 hover:bg-slate-50 dark:hover:bg-slate-800 transition-all uppercase tracking-widest">Cancelar</button>
-                    <button type="submit" class="flex-1 px-6 py-4 bg-primary hover:brightness-110 text-white rounded-2xl font-black text-xs shadow-2xl shadow-primary/30 transition-all active:scale-95 uppercase tracking-widest">Confirmar Reserva</button>
+                <div class="mt-8 flex flex-col gap-4">
+                    <!-- Standard buttons hidden by default if PayPal is active -->
+                    <div id="standard-buttons" class="hidden flex gap-4">
+                        <button type="button" onclick="closeModal()" class="flex-1 px-6 py-4 border-2 border-slate-100 dark:border-slate-800 rounded-2xl font-black text-xs text-slate-400 hover:bg-slate-50 dark:hover:bg-slate-800 transition-all uppercase tracking-widest">Cancelar</button>
+                        <button type="submit" class="flex-1 px-6 py-4 bg-primary hover:brightness-110 text-white rounded-2xl font-black text-xs shadow-2xl shadow-primary/30 transition-all active:scale-95 uppercase tracking-widest">Confirmar Reserva</button>
+                    </div>
+                    
+                    <!-- PayPal Container -->
+                    <div id="paypal-button-container" class="w-full"></div>
                 </div>
             </div>
         </form>
@@ -219,7 +254,26 @@
             <div class="p-8">
                 <div>
                     <label for="room_name" class="block text-[10px] font-black text-slate-400 uppercase tracking-widest mb-2 px-1">Nombre del Salón</label>
-                    <input type="text" id="room_name" name="name" required placeholder="Ej. Laboratorio TIC" class="w-full bg-slate-100 dark:bg-slate-800 border-none rounded-2xl text-sm focus:ring-2 focus:ring-primary/20 py-4 px-4 font-bold text-slate-700 dark:text-slate-200 transition-all"/>
+                    <input type="text" id="room_name" name="name" required placeholder="Ej. Laboratorio TIC" class="w-full bg-slate-100 dark:bg-slate-800 border-none rounded-2xl text-sm focus:ring-2 focus:ring-primary/20 py-4 px-4 font-bold text-slate-700 dark:text-slate-200 transition-all mb-4"/>
+
+                    <label for="map_pin_id" class="block text-[10px] font-black text-slate-400 uppercase tracking-widest mb-2 px-1">Edificio / Ubicación</label>
+                    <select id="map_pin_id" name="map_pin_id" required class="w-full bg-slate-100 dark:bg-slate-800 border-none rounded-2xl text-sm focus:ring-2 focus:ring-primary/20 py-4 px-4 font-bold text-slate-700 dark:text-slate-200 transition-all mb-6">
+                        <option value="" disabled selected>Selecciona el edificio...</option>
+                        {% for pin in map_pins %}
+                            <option value="{{ pin.id }}">{{ pin.name }}</option>
+                        {% endfor %}
+                    </select>
+
+                    <div class="bg-indigo-50 dark:bg-indigo-900/10 p-5 rounded-2xl border border-indigo-100 dark:border-indigo-900/30">
+                        <label class="flex items-center gap-3 cursor-pointer mb-4">
+                            <input type="checkbox" name="is_paid" id="is_paid" class="w-5 h-5 rounded border-slate-300 text-indigo-600 focus:ring-indigo-600 transition duration-150 ease-in-out" onchange="document.getElementById('pricing_container').classList.toggle('hidden', !this.checked)">
+                            <span class="text-sm font-bold text-slate-700 dark:text-slate-300">Requiere Pago (Vía PayPal)</span>
+                        </label>
+                        <div id="pricing_container" class="hidden">
+                            <label for="price_per_hour" class="block text-[10px] font-black text-indigo-400 uppercase tracking-widest mb-2 px-1">Precio por Hora (MXN)</label>
+                            <input type="number" step="0.01" min="0" id="price_per_hour" name="price_per_hour" placeholder="Ej. 150.00" class="w-full bg-white dark:bg-slate-800 border-none rounded-xl text-sm focus:ring-2 focus:ring-indigo-500 py-3 px-4 font-bold text-slate-700 dark:text-slate-200 transition-all"/>
+                        </div>
+                    </div>
                 </div>
                 
                 <div class="mt-10 flex gap-4">
@@ -232,7 +286,58 @@
 
 </div>
 
+<!-- PayPal SDK -->
+<script src="https://www.paypal.com/sdk/js?client-id={{ paypal_client_id }}&currency=MXN"></script>
+
 <script>
+    // Config Store
+    window.currentBookingIsPaid = false;
+    window.currentBookingPrice = 0.0;
+
+    // PayPal Integration
+    let paypalButtons = null;
+
+    function renderPayPalButtons() {
+        if (!window.currentBookingIsPaid) return;
+
+        if (paypalButtons) {
+            paypalButtons.close();
+        }
+        document.getElementById("paypal-button-container").innerHTML = "";
+
+        paypalButtons = paypal.Buttons({
+            createOrder: function(data, actions) {
+                // Determine duration in hours for simplistic pricing
+                const start = new Date(document.getElementById('start_time').value);
+                const end = new Date(document.getElementById('end_time').value);
+                const hours = Math.max(1, (end - start) / (1000 * 60 * 60));
+                const totalCost = (hours * window.currentBookingPrice).toFixed(2);
+
+                return actions.order.create({
+                    purchase_units: [{
+                        amount: {
+                            value: totalCost
+                        },
+                        description: "Reserva de Salón: " + document.getElementById('bookingTitle').innerText
+                    }]
+                });
+            },
+            onApprove: function(data, actions) {
+                return actions.order.capture().then(function(details) {
+                    // Show a success message to your buyer
+                    alert('Pago completado con éxito por ' + details.payer.name.given_name + '. Reservando...');
+                    // Submit the backend reservation securely!
+                    document.getElementById('bookingForm').submit();
+                });
+            },
+            onError: function(err) {
+                console.error('PayPal Checkout Error:', err);
+                alert("Hubo un error con el proceso de pago.");
+            }
+        });
+        paypalButtons.render('#paypal-button-container');
+    }
+
     const modalOverlay = document.getElementById('modalOverlay');
     const bookingModal = document.getElementById('bookingModal');
     const cancelModal = document.getElementById('cancelModal');
@@ -248,17 +353,29 @@
         classroomModal.classList.add('scale-100');
     }
 
-    function openBookingModal(roomId, roomName) {
+    function openBookingModal(roomId, roomName, isPaid, pricePerHour) {
         modalOverlay.classList.remove('hidden');
         modalOverlay.classList.add('flex');
         
+        // Setup State
+        window.currentBookingIsPaid = isPaid;
+        window.currentBookingPrice = pricePerHour;
+
+        if (isPaid) {
+            document.getElementById('standard-buttons').classList.add('hidden');
+            document.getElementById('paypal-button-container').classList.remove('hidden');
+        } else {
+            document.getElementById('standard-buttons').classList.remove('hidden');
+            document.getElementById('paypal-button-container').classList.add('hidden');
+        }
+
         bookingModal.classList.remove('hidden');
         // Trigger reflow for animation
         void bookingModal.offsetWidth;
         bookingModal.classList.remove('scale-95');
         bookingModal.classList.add('scale-100');
 
-        document.getElementById('bookingTitle').innerText = roomName;
+        document.getElementById('bookingTitle').innerText = roomName + (isPaid ? " ($" + pricePerHour + "/hr)" : " (Gratuito)");
         document.getElementById('bookingForm').action = "/reservations/book/" + roomId;
         
         // Default Times
@@ -268,6 +385,9 @@
         
         const end = new Date(now.getTime() + 60*60*1000); // +1 hour
         document.getElementById('end_time').value = end.toISOString().slice(0,16);
+
+        // Render Fresh PayPal Buttons if Paid
+        if (isPaid) renderPayPalButtons();
     }
 
     function openCancelModal(roomId, roomName, start, end) {

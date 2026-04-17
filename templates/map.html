@@ -1,0 +1,122 @@
+{% extends "base.html" %}
+
+{% block title %}Mapa del Campus - Admin Hub{% endblock %}
+
+{% block head %}
+<!-- Leaflet CSS -->
+<link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css" integrity="sha256-p4NxAoJBhIIN+hmNHrzRCf9tD/miZyoHS5obTRR9BMY=" crossorigin=""/>
+<style>
+    #map {
+        height: calc(100vh - 200px);
+        width: 100%;
+        border-radius: 1.5rem;
+        box-shadow: 0 10px 25px -5px rgba(0, 0, 0, 0.1), 0 8px 10px -6px rgba(0, 0, 0, 0.1);
+    }
+</style>
+{% endblock %}
+
+{% block content %}
+<div class="space-y-8">
+    <div class="flex flex-col md:flex-row md:items-end justify-between gap-4">
+        <div>
+            <h2 class="text-4xl font-black tracking-tight mb-2 text-slate-900 dark:text-white">Ubicación del Campus</h2>
+            <p class="text-slate-600 dark:text-slate-400 max-w-xl">Encuentra los edificios y salones disponibles en el mapa interactivo.</p>
+        </div>
+        <div class="flex gap-3">
+             <button onclick="window.location.reload()" class="bg-white dark:bg-slate-900 p-2.5 rounded-xl border border-slate-200 dark:border-slate-800 text-slate-500 hover:text-primary transition-all shadow-sm">
+                <span class="material-symbols-outlined">refresh</span>
+            </button>
+        </div>
+    </div>
+
+    <!-- Map Container with data attribute for role -->
+    <div class="bg-white dark:bg-slate-800 p-4 rounded-3xl border border-slate-200 dark:border-slate-700">
+        <div id="map" data-role="{{ user.role }}"></div>
+    </div>
+</div>
+
+<!-- Leaflet JS -->
+<script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js" integrity="sha256-20nQCchB9co0qIjJZRGuk2/Z9VM+kNiyxNV1lvTlZBo=" crossorigin=""></script>
+<script>
+    const mapElement = document.getElementById('map');
+    const userRole = mapElement.dataset.role;
+
+    // Initialize the map centered on UTNG Dolores Hidalgo
+    var map = L.map('map').setView([21.1685, -100.9317], 17);
+
+    // Add OpenStreetMap tile layer
+    L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', {
+        maxZoom: 19,
+        attribution: '&copy; <a href="http://www.openstreetmap.org/copyright">OpenStreetMap</a>'
+    }).addTo(map);
+
+    // Create a LayerGroup for the pins
+    var pinsLayer = L.layerGroup().addTo(map);
+
+    // Function to load pins from the server
+    function loadPins() {
+        fetch('/map/pins')
+            .then(response => response.json())
+            .then(data => {
+                pinsLayer.clearLayers();
+                data.pins.forEach(pin => {
+                    let popupContent = "<div class='p-1'><b class='text-base'>" + pin.name + "</b>";
+                    
+                    if (pin.classrooms && pin.classrooms.length > 0) {
+                        popupContent += "<div class='mt-2 space-y-2'>";
+                        pin.classrooms.forEach(c => {
+                            popupContent += "<div class='flex items-center justify-between gap-3 text-sm border-t border-slate-100 pt-2'>" + 
+                                            "<span class='font-medium text-slate-700 dark:text-slate-300'>" + c.name + "</span>" +
+                                            "<a href='/reservations' class='bg-primary/10 text-primary px-2 py-1 rounded hover:bg-primary hover:text-white transition-colors text-xs font-bold'>Reservar</a>" +
+                                            "</div>";
+                        });
+                        popupContent += "</div>";
+                    } else {
+                        popupContent += "<p class='text-xs text-slate-500 mt-2 italic'>No hay salones registrados en este edificio aún.</p>";
+                    }
+                    popupContent += "</div>";
+
+                    L.marker([pin.lat, pin.lng])
+                        .addTo(pinsLayer)
+                        .bindPopup(popupContent);
+                });
+            });
+    }
+
+    // Initial load
+    loadPins();
+
+    // Click handler logic based on role
+    function onMapClick(e) {
+        if (userRole === 'admin') {
+            var name = prompt("Nombre del nuevo punto de interés:");
+            if (name) {
+                fetch('/map/pins', {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json',
+                    },
+                    body: JSON.stringify({
+                        name: name,
+                        lat: e.latlng.lat,
+                        lng: e.latlng.lng
+                    }),
+                })
+                .then(response => response.json())
+                .then(data => {
+                    alert(data.message);
+                    loadPins(); // Refresh pins
+                });
+            }
+        } else {
+            // Basic user click handler (show simple info)
+            L.popup()
+                .setLatLng(e.latlng)
+                .setContent("Ubicación: " + e.latlng.toString())
+                .openOn(map);
+        }
+    }
+    
+    map.on('click', onMapClick);
+</script>
+{% endblock %}
